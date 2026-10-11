@@ -24,7 +24,7 @@ The worker (`apps/api/src/worker.ts`) ships in the API image as a second Railway
 - **Explore.exe**: "hood.exe launches" / "All Pons" tabs, sort by Latest, Volume, Rigor or MCap.
 - **Token Detail**: candle chart (1m–1d), last trades, graduation progress, and curve buy/sell with approvals, slippage and snipe-tax handling. Graduated coins link out to Pons.
 - **Callouts.exe**: live feed with reactions and nicknames; tray balloons when it is closed.
-- **Blockscout links**: every transaction shows its short hash (full hash on hover) linking to Blockscout: launch progress and result (including the approval), trade status, the Tx column in Token Detail's trades, and the "launched" and big-buy system callouts. Graduation callouts have no hash yet (the indexer doesn't record it).
+- **Blockscout links**: every transaction shows its short hash (full hash on hover) linking to Blockscout: launch progress and result (including the approval), trade status, the Tx column in Token Detail's trades, the "launched" and big-buy system callouts, and user callouts that name a coin (the poster's latest buy or sell of it in the past 24 h, read from the indexer so it can't be faked). Graduation callouts have no hash yet (the indexer doesn't record it).
 - **Portfolio**: holdings marked at the curve price with unrealized P&L (average cost from indexed trades), sort by Rigor, Value or P&L %, Export CSV; "My launches" tab. Rows open Token Detail.
 - **Share links**: `/t/0x…` opens the desktop on that coin, with its own link-preview card. Token Detail has Copy link and Post on X.
 - **Legal**: one-time risk dialog before the first launch or trade; Terms, Risk and Privacy windows (drafts pending legal review).

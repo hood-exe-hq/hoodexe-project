@@ -78,6 +78,7 @@ export async function systemCalloutsTick({ db, pubsub, envio, now, log }: Deps):
         ticker: coin.symbol,
         createdAt: new Date(b.timestamp * 1000),
         txHash: b.txHash,
+        txSide: 'buy',
       });
       if (row) posted.push(row);
       after = Math.max(after, b.blockNumber);

@@ -36,6 +36,13 @@
       "when": 1791721442298,
       "tag": "0004_callout_tx_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791723078274,
+      "tag": "0005_callout_tx_side",
+      "breakpoints": true
     }
   ]
 }

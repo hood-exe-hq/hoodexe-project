@@ -30,10 +30,22 @@ const reactBody = z.object({ kind: z.enum(REACTION_KINDS) });
 const nicknameBody = z.object({ nickname: z.string().regex(/^[a-z0-9_]{3,15}$/, 'Use 3–15 characters: a–z, 0–9 and _.') });
 
 const NICKNAME_COOLDOWN_MS = 86_400_000;
+/** A callout on a coin carries the poster's latest trade on it from this far back. */
+const TRADE_WINDOW_S = 86_400;
+/** Posting never waits longer than this on the indexer; past it the callout goes up without a trade. */
+const TRADE_LOOKUP_MS = 3_000;
 
 /** Callouts, reactions and nicknames (docs/BRIEF.md §5.5, §9, §10). */
 export async function calloutRoutes(app: FastifyInstance) {
-  const { db, kv, chain, moderator, pubsub, env } = app.deps;
+  const { db, kv, chain, moderator, pubsub, env, envio } = app.deps;
+
+  /** The poster's own latest trade on the coin, from the indexer, so the link can't be made up. */
+  async function latestTrade(wallet: string, token: string) {
+    if (!envio) return null;
+    const since = Math.floor(app.deps.now().getTime() / 1000) - TRADE_WINDOW_S;
+    const timeout = new Promise<null>((resolve) => setTimeout(resolve, TRADE_LOOKUP_MS, null).unref());
+    return Promise.race([envio.latestWalletTrade(getAddress(wallet), getAddress(token), since).catch(() => null), timeout]);
+  }
 
 
   let stats: { at: number; value: { callouts: number; users: number } } | null = null;
@@ -109,10 +121,21 @@ export async function calloutRoutes(app: FastifyInstance) {
       link = row ?? null;
     }
     link ??= await resolveTicker(db, text);
+    const trade = link ? await latestTrade(wallet, link.tokenAddress) : null;
 
     const [row] = await db
       .insert(schema.callouts)
-      .values({ wallet, kind: 'user', text, tokenAddress: link?.tokenAddress ?? null, ticker: link?.ticker ?? null, hidden: hiddenReason != null, hiddenReason })
+      .values({
+        wallet,
+        kind: 'user',
+        text,
+        tokenAddress: link?.tokenAddress ?? null,
+        ticker: link?.ticker ?? null,
+        hidden: hiddenReason != null,
+        hiddenReason,
+        txHash: trade?.txHash ?? null,
+        txSide: trade ? (trade.isBuy ? 'buy' : 'sell') : null,
+      })
       .returning();
     const [dto] = await presentCallouts(db, [row], { official: env.OFFICIAL_WALLETS });
     if (!row.hidden) {

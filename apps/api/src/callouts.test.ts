@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { getAddress } from 'viem';
 import { NATIVE_PAIR } from '@hood/shared';
 import { schema } from './db';
+import type { EnvioClient } from './services/envio';
 import { blocklistHit, cleanCalloutText } from './services/moderation';
 import { CALLOUTS_CHANNEL } from './services/pubsub';
 import { alice, bob, setup, signIn } from './test/helpers';
@@ -81,6 +83,32 @@ describe('POST /callouts', () => {
     const cookie = await signIn(ctx);
     expect((await post(cookie, 'watching this one', { tokenAddress: addr(12) })).json().callout).toMatchObject({ ticker: 'DOGE', tokenAddress: addr(12) });
     expect((await post(cookie, '$NOPE ngmi')).json().callout).toMatchObject({ ticker: null, tokenAddress: null });
+  });
+
+  it("attaches the poster's latest trade on the linked coin, and posts without one if the indexer fails", async () => {
+    const asked: { wallet: string; token: string; since: number }[] = [];
+    let down = false;
+    const envio = {
+      latestWalletTrade: async (wallet: string, token: string, since: number) => {
+        asked.push({ wallet, token, since });
+        if (down) throw new Error('indexer down');
+        return { id: 't1', trader: wallet, isBuy: false, quoteAmount: 1n, tokenAmount: 1n, price: '1', timestamp: since + 60, txHash: '0xfeed' };
+      },
+    } as unknown as EnvioClient;
+    await ctx.close();
+    ctx = await setup({ envio });
+    await seedToken(12, 'DOGE');
+    const cookie = await signIn(ctx);
+
+    expect((await post(cookie, 'sold some $DOGE')).json().callout).toMatchObject({ ticker: 'DOGE', txHash: '0xfeed', txSide: 'sell' });
+    expect(asked).toEqual([{ wallet: getAddress(alice.address), token: getAddress(addr(12)), since: Math.floor(ctx.now().getTime() / 1000) - 86_400 }]);
+    expect((await post(cookie, 'gm, no coin here')).json().callout).not.toHaveProperty('txHash');
+    expect(asked).toHaveLength(1);
+
+    down = true;
+    const res = await post(cookie, '$DOGE again');
+    expect(res.statusCode).toBe(201);
+    expect(res.json().callout).not.toHaveProperty('txHash');
   });
 
   it('enforces length, emptiness and the ETH-holder rule', async () => {

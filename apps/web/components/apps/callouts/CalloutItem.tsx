@@ -55,7 +55,7 @@ export function CalloutItem({ callout: c, flash, onReact }: Props) {
           <time className={styles.time} dateTime={c.createdAt} title={new Date(c.createdAt).toLocaleString()}>
             {timeAgo(c.createdAt)}
           </time>
-          {c.txHash && <TxLink hash={c.txHash} className={styles.tx} />}
+          {c.txHash && <TxLink hash={c.txHash} label={c.txSide && (c.txSide === 'buy' ? 'Buy' : 'Sell')} className={styles.tx} />}
         </div>
         <p className={styles.text}>{c.text}</p>
         <div className={styles.reactions}>

@@ -217,6 +217,21 @@ export function envioClient(graphqlUrl: string, pageSize = 1_000, limits: Partia
       );
     },
 
+    /** The wallet's newest trade on `token` since `since` (unix seconds), as trader or recipient; null if none. */
+    async latestWalletTrade(wallet: string, token: string, since: number): Promise<EnvioTrade | null> {
+      const data = await query(
+        `query LatestWalletTrade($token: String!, $wallet: String!, $since: Int!) {
+          Trade(where: { token: { _eq: $token }, timestamp: { _gte: $since }, _or: [{ trader: { _eq: $wallet } }, { recipient: { _eq: $wallet } }] }, order_by: [{ blockNumber: desc }, { id: desc }], limit: 1) {
+            id trader isBuy quoteAmount tokenAmount price timestamp txHash
+          }
+        }`,
+        { token, wallet, since },
+        z.object({ Trade: z.array(tradeRow) }),
+        'interactive',
+      );
+      return data.Trade[0] ?? null;
+    },
+
     /** Newest `limit` trades, newest first. */
     async trades(token: string, limit: number): Promise<EnvioTrade[]> {
       const data = await query(
