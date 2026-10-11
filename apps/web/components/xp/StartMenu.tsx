@@ -6,6 +6,7 @@ import { useAccountModal, useConnectModal } from '@rainbow-me/rainbowkit';
 import { addressUrl, EXPLORER_MAINNET } from '@hood/shared';
 import { APPS, GAME_APPS, START_APPS, type AppId } from '@/components/apps/meta';
 import { openApp } from '@/lib/openApp';
+import { X_URL } from '@/lib/social';
 import { useIdentity } from '@/lib/identity';
 import {
   ExploreIcon,
@@ -17,6 +18,7 @@ import {
   RecycleBinIcon,
   TurnOffIcon,
   WalletIcon,
+  XIcon,
 } from './Icons';
 import styles from './StartMenu.module.css';
 
@@ -156,6 +158,10 @@ export function StartMenu({ onClose, onLogOff, onShutDown }: StartMenuProps) {
           >
             <InfoIcon size={24} />
             <span className={styles.itemName}>Chain Explorer</span>
+          </a>
+          <a role="menuitem" className={styles.item} href={X_URL} target="_blank" rel="noopener noreferrer" onClick={onClose}>
+            <XIcon size={24} />
+            <span className={styles.itemName}>hood.exe on X</span>
           </a>
           <button type="button" role="menuitem" className={styles.item} onClick={() => launch('about')}>
             <InfoIcon size={24} />

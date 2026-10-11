@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/xp/Button';
 import { MinesweeperIcon } from '@/components/xp/Icons';
 import { track } from '@/lib/analytics';
+import { X_HANDLE, X_URL } from '@/lib/social';
 import { useWindows, type WindowState } from '@/store/windows';
 import styles from '../games.module.css';
 
@@ -29,8 +30,8 @@ export function MinesweeperWindow({ win }: { win: WindowState }) {
         Coming soon to hood.exe.
         <br />
         Follow{' '}
-        <a href="https://x.com/hoodexe" target="_blank" rel="noopener noreferrer">
-          @hoodexe
+        <a href={X_URL} target="_blank" rel="noopener noreferrer">
+          @{X_HANDLE}
         </a>{' '}
         for release updates.
       </p>

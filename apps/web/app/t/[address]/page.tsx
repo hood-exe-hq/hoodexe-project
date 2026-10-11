@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { connection } from 'next/server';
 import { Startup } from '@/components/Startup';
 import { getShareToken, plainStatement, shareSummary } from '@/lib/shareToken';
+import { X_HANDLE } from '@/lib/social';
 
 /**
  * /t/0x… (docs/BRIEF.md §4): the desktop with that coin's Token Detail open, and a link preview with the
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ address: 
     title,
     description,
     openGraph: { title, description, type: 'website', siteName: 'hood.exe' },
-    twitter: { card: 'summary_large_image', title, description },
+    twitter: { card: 'summary_large_image', title, description, site: `@${X_HANDLE}` },
   };
 }
 

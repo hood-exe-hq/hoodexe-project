@@ -1,21 +1,29 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { ROBINHOOD_CHAIN_ID } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
 import { GroupBox } from '@/components/xp/Controls';
 import { HoodLogo } from '@/components/xp/Icons';
 import { Wordmark } from '@/components/xp/Wordmark';
 import { openApp } from '@/lib/openApp';
+import { X_HANDLE, X_URL } from '@/lib/social';
 import { useWindows, type WindowState } from '@/store/windows';
 import styles from './apps.module.css';
 
-const ROWS: [string, string][] = [
+const ROWS: [string, ReactNode][] = [
   ['Chain', `Robinhood Chain (${ROBINHOOD_CHAIN_ID})`],
   ['Launch routing', 'Pons V2 bonding curve → Uniswap V4'],
   ['Rigor engine', 'DeepSeek — AI estimate, not a proof check'],
   ['Callouts', 'Live feed, Sign-In with Ethereum'],
   ['Theme', 'Luna-style recreation, original assets'],
   ['Operator', 'Wealthy People'],
+  [
+    'X',
+    <a key="x" href={X_URL} target="_blank" rel="noopener noreferrer">
+      @{X_HANDLE}
+    </a>,
+  ],
 ];
 
 export function About({ win }: { win: WindowState }) {

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
+import { X_HANDLE } from '@/lib/social';
 import './globals.css';
 
 // Absolute URLs for link previews: NEXT_PUBLIC_SITE_URL, else the production domain.
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     siteName: 'hood.exe',
     type: 'website',
   },
-  twitter: { card: 'summary_large_image', title: 'hood.exe' },
+  twitter: { card: 'summary_large_image', title: 'hood.exe', site: `@${X_HANDLE}` },
 };
 
 export const viewport: Viewport = {

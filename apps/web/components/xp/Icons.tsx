@@ -219,6 +219,17 @@ export function InfoIcon(props: IconProps) {
   );
 }
 
+/** A dark tile with an X, for links to hood.exe's X account. */
+export function XIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="3" width="26" height="26" rx="5" fill="#111" stroke="#000" />
+      <path d="M9.5 8.5 H13.6 L22.5 23.5 H18.4 Z" fill="#fff" />
+      <path d="M21.2 8.5 H23 L17.1 15.3 L16.1 13.8 Z M14.9 17.2 L15.9 18.7 L10.8 23.5 H9 Z" fill="#fff" />
+    </Svg>
+  );
+}
+
 export function QuestionIcon(props: IconProps) {
   const id = gid(useId());
   return (
