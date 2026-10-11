@@ -4,48 +4,10 @@
 .folderIcon { font: inherit; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; background: none; border: 1px solid transparent; color: #000; }
 .folderIcon:hover { border-color: #b7cdf0; background: #eef3fc; }
 .folderIcon:focus-visible { outline: none; border-color: var(--selection); background: #dce7fa; }
-.folderImg { position: relative; display: inline-flex; }
+.folderImg { display: inline-flex; }
 .folderLabel { text-align: center; }
-
-/* "SOON" badge: small red oval on an icon's top-right corner */
-.soon {
-  position: absolute;
-  top: -4px;
-  right: -14px;
-  padding: 0 4px;
-  border-radius: 7px;
-  background: linear-gradient(to bottom, #f05a3c, #c51f00);
-  border: 1px solid #fff;
-  color: #fff;
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 12px;
-  letter-spacing: 0.3px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
-}
-
-.soonInline { composes: soon; position: static; margin-left: 6px; vertical-align: 1px; }
-
-/* Minesweeper, coming soon */
-.soonWindow { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px 20px; text-align: center; }
-.soonWindow p { margin: 0; line-height: 1.5; }
-.soonMessage { font-weight: 700; }
-.install { width: 100%; height: 16px; padding: 1px; border: 1px solid #686868; border-radius: 3px; background: #fff; overflow: hidden; }
-.installFill {
-  height: 100%;
-  width: 0;
-  background: repeating-linear-gradient(to right, #2ed330 0 9px, transparent 9px 11px);
-  animation: install 8s linear infinite;
-}
-@keyframes install {
-  from { width: 0; }
-  to { width: 100%; }
-}
 
 @media (max-width: 640px) {
   .folderIcon { width: 104px; padding: 10px 4px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .installFill { animation: none; width: 47%; }
-}

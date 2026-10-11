@@ -26,7 +26,10 @@ export type AnalyticsEvent =
   | 'solitaire_started'
   | 'solitaire_won'
   | 'solitaire_closed'
-  | 'minesweeper_coming_soon_viewed';
+  | 'minesweeper_started'
+  | 'minesweeper_won'
+  | 'minesweeper_lost'
+  | 'minesweeper_difficulty_changed';
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 

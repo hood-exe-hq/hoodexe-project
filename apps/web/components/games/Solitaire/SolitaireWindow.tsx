@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/xp/Button';
 import { Dialog, MessageBox } from '@/components/xp/Dialog';
 import { SolitaireIcon } from '@/components/xp/Icons';
 import { track } from '@/lib/analytics';
 import { useWindows, type WindowState } from '@/store/windows';
+import { MenuBar, MenuButton, MenuItem } from '../GameMenu';
 import { canAutoComplete, displayScore, elapsedSeconds } from './solitaire.logic';
 import { SolitaireBoard } from './Solitaire';
 import { useSolitaire } from './useSolitaire';
@@ -20,7 +21,6 @@ export default function SolitaireWindow({ win }: { win: WindowState }) {
   const g = useSolitaire();
   const { state, settings, stats } = g;
   const active = useWindows((s) => s.activeId === win.id);
-  const [menu, setMenu] = useState<'game' | 'help' | null>(null);
   const [modal, setModal] = useState<Modal>(null);
   // Both refer to one finished game (its finishedAt), so a new deal starts fresh without resetting them.
   const [celebratedAt, setCelebratedAt] = useState<number | null>(null);
@@ -73,56 +73,40 @@ export default function SolitaireWindow({ win }: { win: WindowState }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [active, newGame, undo]);
 
-  // Menus close on any click outside them.
-  const menuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!menu) return;
-    const onDown = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenu(null);
-    };
-    window.addEventListener('pointerdown', onDown);
-    return () => window.removeEventListener('pointerdown', onDown);
-  }, [menu]);
-
-  const run = (fn: () => void) => () => {
-    setMenu(null);
-    fn();
-  };
-
   const seconds = elapsedSeconds(state);
   const score = displayScore(state);
 
   return (
     <div className={styles.window}>
-      <div className={styles.menubar} ref={menuRef} role="menubar">
-        <MenuButton label="Game" open={menu === 'game'} onOpen={() => setMenu(menu === 'game' ? null : 'game')} onHover={() => menu && setMenu('game')}>
-          <MenuItem onClick={run(g.newGame)} shortcut="F2">
+      <MenuBar>
+        <MenuButton label="Game">
+          <MenuItem onClick={g.newGame} shortcut="F2">
             New Game
           </MenuItem>
-          <MenuItem onClick={run(g.dealAgain)}>Deal Again</MenuItem>
-          <MenuItem onClick={run(g.undo)} shortcut="Ctrl+Z" disabled={!g.canUndo}>
+          <MenuItem onClick={g.dealAgain}>Deal Again</MenuItem>
+          <MenuItem onClick={g.undo} shortcut="Ctrl+Z" disabled={!g.canUndo}>
             Undo
           </MenuItem>
           <hr />
-          <MenuItem onClick={run(() => g.setSettings({ cardBack: 'blue' }))} checked={settings.cardBack === 'blue'}>
+          <MenuItem onClick={() => g.setSettings({ cardBack: 'blue' })} checked={settings.cardBack === 'blue'}>
             Blue card back
           </MenuItem>
-          <MenuItem onClick={run(() => g.setSettings({ cardBack: 'red' }))} checked={settings.cardBack === 'red'}>
+          <MenuItem onClick={() => g.setSettings({ cardBack: 'red' })} checked={settings.cardBack === 'red'}>
             Red card back
           </MenuItem>
-          <MenuItem onClick={run(() => g.setSettings({ autoComplete: !settings.autoComplete }))} checked={settings.autoComplete}>
+          <MenuItem onClick={() => g.setSettings({ autoComplete: !settings.autoComplete })} checked={settings.autoComplete}>
             Auto-complete
           </MenuItem>
           <hr />
-          <MenuItem onClick={run(() => setModal('stats'))}>Statistics…</MenuItem>
+          <MenuItem onClick={() => setModal('stats')}>Statistics…</MenuItem>
           <hr />
-          <MenuItem onClick={run(close)}>Exit</MenuItem>
+          <MenuItem onClick={close}>Exit</MenuItem>
         </MenuButton>
-        <MenuButton label="Help" open={menu === 'help'} onOpen={() => setMenu(menu === 'help' ? null : 'help')} onHover={() => menu && setMenu('help')}>
-          <MenuItem onClick={run(() => setModal('help'))}>How to Play</MenuItem>
-          <MenuItem onClick={run(() => setModal('about'))}>About Solitaire</MenuItem>
+        <MenuButton label="Help">
+          <MenuItem onClick={() => setModal('help')}>How to Play</MenuItem>
+          <MenuItem onClick={() => setModal('about')}>About Solitaire</MenuItem>
         </MenuButton>
-      </div>
+      </MenuBar>
 
       <SolitaireBoard
         state={state}
@@ -253,30 +237,5 @@ export default function SolitaireWindow({ win }: { win: WindowState }) {
         </MessageBox>
       )}
     </div>
-  );
-}
-
-function MenuButton({ label, open, onOpen, onHover, children }: { label: string; open: boolean; onOpen: () => void; onHover: () => void; children: ReactNode }) {
-  return (
-    <div className={styles.menuRoot}>
-      <button type="button" className={`${styles.menuTitle} ${open ? styles.menuOpen : ''}`} onClick={onOpen} onPointerEnter={onHover} aria-haspopup="menu" aria-expanded={open}>
-        {label}
-      </button>
-      {open && (
-        <div className={styles.menuList} role="menu">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MenuItem({ children, onClick, shortcut, checked, disabled }: { children: ReactNode; onClick: () => void; shortcut?: string; checked?: boolean; disabled?: boolean }) {
-  return (
-    <button type="button" role={checked == null ? 'menuitem' : 'menuitemcheckbox'} aria-checked={checked} className={styles.menuItem} onClick={onClick} disabled={disabled}>
-      <span className={styles.check}>{checked ? '✓' : ''}</span>
-      <span>{children}</span>
-      {shortcut && <span className={styles.shortcut}>{shortcut}</span>}
-    </button>
   );
 }

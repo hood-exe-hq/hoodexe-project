@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { SoonBadge } from '@/components/games/GamesFolder';
 import { useAccountModal, useConnectModal } from '@rainbow-me/rainbowkit';
 import { addressUrl, EXPLORER_MAINNET } from '@hood/shared';
 import { APPS, GAME_APPS, START_APPS, type AppId } from '@/components/apps/meta';
@@ -109,7 +108,6 @@ export function StartMenu({ onClose, onLogOff, onShutDown }: StartMenuProps) {
                       <app.Icon size={24} />
                     </span>
                     <span className={styles.itemName}>{app.label}</span>
-                    {app.comingSoon && <SoonBadge inline />}
                   </button>
                 );
               })}

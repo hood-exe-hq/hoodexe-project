@@ -28,7 +28,7 @@ The worker (`apps/api/src/worker.ts`) ships in the API image as a second Railway
 - **Portfolio**: holdings marked at the curve price with unrealized P&L (average cost from indexed trades), sort by Rigor, Value or P&L %, Export CSV; "My launches" tab. Rows open Token Detail.
 - **Share links**: `/t/0x…` opens the desktop on that coin, with its own link-preview card. Token Detail has Copy link and Post on X.
 - **Legal**: one-time risk dialog before the first launch or trade; Terms, Risk and Privacy windows (drafts pending legal review).
-- **Games**: a Games folder on the desktop and in Start → Games. Solitaire (Klondike, turn one) with drag and drop on mouse and touch, undo, scoring, statistics, resume and the bouncing-card win; Minesweeper is a "coming soon" window. `/games/solitaire` and `/games/minesweeper` open them directly. No wallet needed.
+- **Games**: a Games folder on the desktop and in Start → Games. Solitaire (Klondike, turn one) with drag and drop on mouse and touch, undo, scoring, statistics, resume and the bouncing-card win; Minesweeper (Beginner, Intermediate, Expert and Custom) with chording, ? marks, best times, and tap / long-press / flag mode / pinch-zoom on touch. `/games/solitaire` and `/games/minesweeper` open them directly. No wallet needed.
 - **Analytics**: PostHog, anonymous and cookieless, with the launch and trade funnels (`apps/web/lib/analytics.ts`).
 
 ## Develop

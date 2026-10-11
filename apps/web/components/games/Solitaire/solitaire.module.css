@@ -1,29 +1,5 @@
 .window { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #ece9d8; }
 
-/* Menu bar */
-.menubar { flex: 0 0 auto; display: flex; gap: 0; padding: 1px 2px; border-bottom: 1px solid #d6d2c2; background: #ece9d8; position: relative; z-index: 200; }
-.menuRoot { position: relative; }
-.menuTitle { font: inherit; background: none; border: 0; padding: 2px 8px; color: #000; }
-.menuTitle:hover, .menuOpen { background: var(--selection); color: #fff; }
-.menuList {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  min-width: 190px;
-  display: flex;
-  flex-direction: column;
-  padding: 2px;
-  background: #fff;
-  border: 1px solid #aca899;
-  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
-}
-.menuList hr { border: 0; border-top: 1px solid #aca899; margin: 3px 2px; }
-.menuItem { font: inherit; display: grid; grid-template-columns: 18px 1fr auto; gap: 4px; text-align: left; background: none; border: 0; padding: 3px 8px 3px 2px; color: #000; }
-.menuItem:hover:not(:disabled) { background: var(--selection); color: #fff; }
-.menuItem:disabled { color: #aca899; }
-.check { text-align: center; }
-.shortcut { padding-left: 16px; }
-
 /* Board: cards size themselves from the window width (container query units). */
 .boardWrap { flex: 1 1 auto; min-height: 0; display: flex; container-type: inline-size; }
 .board {

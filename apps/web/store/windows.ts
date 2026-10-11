@@ -38,6 +38,8 @@ type WindowStore = {
   minimize: (id: string) => void;
   toggleMaximize: (id: string) => void;
   move: (id: string, x: number, y: number) => void;
+  /** e.g. Minesweeper fitting its window to the board; clamped to the screen and kept on it. */
+  resize: (id: string, w: number, h: number) => void;
   /** e.g. a Token Detail opened from a link learns its ticker after loading. */
   rename: (id: string, title: string) => void;
   /** Taskbar button: restore if minimized, minimize if active, else focus. */
@@ -129,6 +131,19 @@ export const useWindows = create<WindowStore>((set, get) => ({
 
   move: (id, x, y) =>
     set((s) => ({ windows: s.windows.map((w) => (w.id === id ? { ...w, x, y } : w)) })),
+
+  resize: (id, w, h) =>
+    set((s) => {
+      const win = s.windows.find((x) => x.id === id);
+      if (!win) return s;
+      const { vw, vh } = viewport();
+      const width = Math.round(Math.min(w, vw - 8));
+      const height = Math.round(Math.min(h, vh - 8));
+      if (width === win.w && height === win.h) return s;
+      const x = Math.max(4, Math.min(win.x, vw - width - 4));
+      const y = Math.max(4, Math.min(win.y, vh - height - 4));
+      return { windows: s.windows.map((v) => (v.id === id ? { ...v, x, y, w: width, h: height } : v)) };
+    }),
 
   rename: (id, title) =>
     set((s) => (s.windows.some((w) => w.id === id && w.title !== title) ? { windows: s.windows.map((w) => (w.id === id ? { ...w, title } : w)) } : s)),

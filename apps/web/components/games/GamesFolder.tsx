@@ -8,11 +8,6 @@ import styles from './games.module.css';
 
 const DOUBLE_TAP_MS = 400;
 
-/** A small red XP-style "SOON" oval for apps that aren't playable yet (hood-exe-games-brief.md §3.3). */
-export function SoonBadge({ inline = false }: { inline?: boolean }) {
-  return <span className={inline ? styles.soonInline : styles.soon}>SOON</span>;
-}
-
 /** The Games folder (hood-exe-games-brief.md §1.4): double-click (or double-tap) a game to open it. */
 export function GamesFolder() {
   const lastTap = useRef<{ id: AppId; t: number } | null>(null);
@@ -37,11 +32,10 @@ export function GamesFolder() {
                 className={styles.folderIcon}
                 onClick={(e) => tap(id, e.timeStamp)}
                 onKeyDown={(e) => e.key === 'Enter' && openApp(id)}
-                aria-label={`${app.label}${app.comingSoon ? ' (coming soon)' : ''} — double-click to open`}
+                aria-label={`${app.label} — double-click to open`}
               >
                 <span className={styles.folderImg}>
                   <app.Icon size={40} />
-                  {app.comingSoon && <SoonBadge />}
                 </span>
                 <span className={styles.folderLabel}>{app.label}</span>
               </button>

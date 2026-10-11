@@ -30,8 +30,6 @@ export type AppMeta = {
   w: number;
   h: number;
   maximizable?: boolean;
-  /** Shown with a SOON badge; opens a placeholder. */
-  comingSoon?: boolean;
 };
 
 export const APPS: Record<AppId, AppMeta> = {
@@ -159,12 +157,12 @@ export const APPS: Record<AppId, AppMeta> = {
     id: 'minesweeper',
     title: 'Minesweeper',
     label: 'Minesweeper',
-    description: 'Coming soon',
+    description: 'Beginner, Intermediate, Expert',
     Icon: MinesweeperIcon,
-    w: 340,
-    h: 400,
+    // Opening size; the window then fits itself to the board for each difficulty.
+    w: 350,
+    h: 420,
     maximizable: false,
-    comingSoon: true,
   },
   recycle: {
     id: 'recycle',
