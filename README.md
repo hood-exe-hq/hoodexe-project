@@ -24,6 +24,7 @@ The worker (`apps/api/src/worker.ts`) ships in the API image as a second Railway
 - **Explore.exe**: "hood.exe launches" / "All Pons" tabs, sort by Latest, Volume, Rigor or MCap.
 - **Token Detail**: candle chart (1m–1d), last trades, graduation progress, and curve buy/sell with approvals, slippage and snipe-tax handling. Graduated coins link out to Pons.
 - **Callouts.exe**: live feed with reactions and nicknames; tray balloons when it is closed.
+- **Blockscout links**: every transaction shows its short hash (full hash on hover) linking to Blockscout: launch progress and result (including the approval), trade status, the Tx column in Token Detail's trades, and the "launched" and big-buy system callouts. Graduation callouts have no hash yet (the indexer doesn't record it).
 - **Portfolio**: holdings marked at the curve price with unrealized P&L (average cost from indexed trades), sort by Rigor, Value or P&L %, Export CSV; "My launches" tab. Rows open Token Detail.
 - **Share links**: `/t/0x…` opens the desktop on that coin, with its own link-preview card. Token Detail has Copy link and Post on X.
 - **Legal**: one-time risk dialog before the first launch or trade; Terms, Risk and Privacy windows (drafts pending legal review).
@@ -59,7 +60,7 @@ Open the web app on `localhost`, not `127.0.0.1`, so the session cookie reaches 
 - Production refuses to start on either stand-in, without Redis, or with the dev session secret.
 - API tests run on in-process Postgres (PGlite) and need no Docker.
 - Schema changes: edit `apps/api/src/db/schema.ts`, then `pnpm --filter @hood/api db:generate`.
-- Callouts: `GET/POST /callouts`, reactions, `PUT /profile` (nickname) and the `/ws` live feed. The worker (same package, `src/worker.ts`) posts "$TICKER launched / graduated" and ≥ 0.5 ETH buys for hood.exe coins and reaches the API's WebSockets through Redis pub/sub; on Railway run it as a second service from the same image. Without `DEEPSEEK_API_KEY` callout moderation is the blocklist only (refused in production). `OFFICIAL_WALLETS` and `BLOCKLIST_EXTRA` are comma-separated.
+- Callouts: `GET/POST /callouts`, reactions, `PUT /profile` (nickname) and the `/ws` live feed. The worker (same package, `src/worker.ts`) posts "$TICKER launched / graduated" and ≥ 0.5 ETH buys for hood.exe coins (with the launch or buy transaction hash in `callouts.tx_hash`, migration 0004; launch hashes come from `/launches` records and are filled in on later passes) and reaches the API's WebSockets through Redis pub/sub; on Railway run it as a second service from the same image. Without `DEEPSEEK_API_KEY` callout moderation is the blocklist only (refused in production). `OFFICIAL_WALLETS` and `BLOCKLIST_EXTRA` are comma-separated.
 - Explore's `/tokens` table: launches come from the indexer (`ENVIO_GRAPHQL_URL`); names, logos and live reserves from `RPC_URL_SERVER` (eth_call only, so a free-tier RPC is fine). Without `ENVIO_GRAPHQL_URL` the API falls back to scanning RPC logs, which free RPC tiers cap at a few blocks. `TOKEN_INDEX=off` disables it.
 - Token Detail's chart (`/tokens/:address/candles`), trades (`/tokens/:address/trades`) and Explore's Volume sort read the indexer directly; without `ENVIO_GRAPHQL_URL` the first two answer 503 and Volume is hidden.
 - Portfolio (`/portfolio/:wallet`): the wallet's launches plus its holdings, marked at the curve price, with average-cost P&L from its indexed trades. Without `ENVIO_GRAPHQL_URL` it only covers the wallet's own launches and has no cost basis; graduated coins have no value yet.
@@ -98,7 +99,7 @@ NEXT_PUBLIC_DEV_WALLET=1        # adds "Anvil dev wallet" (anvil signs for it); 
 RPC_URL_SERVER=http://127.0.0.1:8545
 ```
 
-The four anvil dev accounts get 10,000 ETH and 10,000 USDG each. A real wallet works too: add a network with chain id 4663 and RPC `http://127.0.0.1:8545`, and import an anvil dev key. Blockscout links in the wizard point at mainnet and won't resolve fork transactions.
+The four anvil dev accounts get 10,000 ETH and 10,000 USDG each. A real wallet works too: add a network with chain id 4663 and RPC `http://127.0.0.1:8545`, and import an anvil dev key. Blockscout links point at mainnet and won't resolve fork transactions.
 
 ### Chain checks
 
