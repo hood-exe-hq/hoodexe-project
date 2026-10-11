@@ -111,6 +111,8 @@ export const callouts = pgTable(
     hiddenReason: text('hidden_reason'),
     /** System callouts: the event they describe, so the worker never posts one twice. */
     sourceKey: text('source_key').unique(),
+    /** System callouts: the transaction behind the event (a launch or a buy), when known. */
+    txHash: text('tx_hash'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('callouts_created_idx').on(t.createdAt, t.id), index('callouts_token_idx').on(t.tokenAddress, t.createdAt), index('callouts_wallet_idx').on(t.wallet)],

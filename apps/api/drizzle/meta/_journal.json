@@ -29,6 +29,13 @@
       "when": 1791541233127,
       "tag": "0003_callouts",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791721442298,
+      "tag": "0004_callout_tx_hash",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { formatEther } from 'viem';
 import { NATIVE_PAIR, shortAddress } from '@hood/shared';
 import { insertSystemCallout, presentCallouts } from './callouts';
@@ -27,6 +27,8 @@ const ethText = (wei: bigint) => {
 export async function systemCalloutsTick({ db, pubsub, envio, now, log }: Deps): Promise<number> {
   const posted: (typeof schema.callouts.$inferSelect)[] = [];
   const hood = await db.select().from(schema.tokens).where(eq(schema.tokens.hood, true));
+  // Launches recorded through hood.exe (POST /launches) carry their transaction; ones found only on-chain don't.
+  const launchTx = new Map((await db.select({ token: schema.launches.tokenAddress, tx: schema.launches.txHash }).from(schema.launches)).map((l) => [l.token.toLowerCase(), l.tx]));
 
   for (const t of hood) {
     const launched = await insertSystemCallout(db, {
@@ -35,6 +37,7 @@ export async function systemCalloutsTick({ db, pubsub, envio, now, log }: Deps):
       tokenAddress: t.tokenAddress,
       ticker: t.symbol,
       createdAt: t.launchedAt,
+      txHash: launchTx.get(t.tokenAddress.toLowerCase()),
     });
     if (launched) posted.push(launched);
     if (t.phase >= 2) {
@@ -47,6 +50,11 @@ export async function systemCalloutsTick({ db, pubsub, envio, now, log }: Deps):
       if (graduated) posted.push(graduated);
     }
   }
+  // A launch callout can go up before its creator's POST /launches lands, or predate the tx_hash column.
+  await db.execute(
+    sql`update callouts set tx_hash = launches.tx_hash from launches
+        where callouts.tx_hash is null and callouts.source_key = 'launch:' || lower(launches.token_address)`,
+  );
 
   // Big buys are an ETH measure, so only ETH-paired coins qualify.
   const ethCoins = hood.filter((t) => t.pairToken.toLowerCase() === NATIVE_PAIR);
@@ -69,6 +77,7 @@ export async function systemCalloutsTick({ db, pubsub, envio, now, log }: Deps):
         tokenAddress: coin.tokenAddress,
         ticker: coin.symbol,
         createdAt: new Date(b.timestamp * 1000),
+        txHash: b.txHash,
       });
       if (row) posted.push(row);
       after = Math.max(after, b.blockNumber);

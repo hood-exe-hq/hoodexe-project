@@ -19,6 +19,7 @@ export type CalloutDto = {
   official?: boolean;
   verified?: boolean;
   mine?: ReactionKind[];
+  txHash?: string;
 };
 
 type CalloutRow = typeof schema.callouts.$inferSelect;
@@ -103,6 +104,7 @@ export async function presentCallouts(db: Db, rows: CalloutRow[], opts: { offici
     if (r.kind === 'system' || official.has(r.wallet.toLowerCase())) dto.official = true;
     if (r.kind === 'user' && (p?.verified || graduatedBy.has(r.wallet))) dto.verified = true;
     if (opts.viewer) dto.mine = mine.filter((m) => m.id === r.id).map((m) => m.kind);
+    if (r.txHash) dto.txHash = r.txHash;
     return dto;
   });
 }
@@ -110,11 +112,11 @@ export async function presentCallouts(db: Db, rows: CalloutRow[], opts: { offici
 /** Writes a system callout once per source event; returns null if that event was already posted. */
 export async function insertSystemCallout(
   db: Db,
-  c: { sourceKey: string; text: string; tokenAddress: string | null; ticker: string | null; createdAt?: Date },
+  c: { sourceKey: string; text: string; tokenAddress: string | null; ticker: string | null; createdAt?: Date; txHash?: string | null },
 ): Promise<CalloutRow | null> {
   const [row] = await db
     .insert(schema.callouts)
-    .values({ wallet: '', kind: 'system', text: c.text, tokenAddress: c.tokenAddress, ticker: c.ticker, sourceKey: c.sourceKey, createdAt: c.createdAt })
+    .values({ wallet: '', kind: 'system', text: c.text, tokenAddress: c.tokenAddress, ticker: c.ticker, sourceKey: c.sourceKey, createdAt: c.createdAt, txHash: c.txHash })
     .onConflictDoNothing({ target: schema.callouts.sourceKey })
     .returning();
   return row ?? null;

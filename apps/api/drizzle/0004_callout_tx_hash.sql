@@ -1,0 +1,1 @@
+ALTER TABLE "callouts" ADD COLUMN "tx_hash" text;

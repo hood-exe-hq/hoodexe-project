@@ -211,6 +211,8 @@ export const calloutSchema = z.object({
   official: z.boolean().optional(),
   verified: z.boolean().optional(),
   mine: z.array(z.enum(REACTION_KINDS)).optional(),
+  /** System callouts: the launch or buy transaction, when known. */
+  txHash: z.string().optional(),
 });
 export type Callout = z.infer<typeof calloutSchema>;
 

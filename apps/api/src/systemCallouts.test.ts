@@ -47,7 +47,7 @@ const buy = (id: string, token: string, eth: bigint, block: number, at: number):
   tokenAmount: 1n,
   price: '1',
   timestamp: at,
-  txHash: '0x',
+  txHash: `0xb${id}`,
   blockNumber: block,
 });
 
@@ -63,6 +63,14 @@ function fakeEnvio(buys: Buy[], head = 1_000) {
   } as unknown as EnvioClient;
   return { envio, asked };
 }
+
+/** What POST /launches stores for a launch made through hood.exe. */
+async function recordLaunch(n: number, txHash: string) {
+  await ctx.db.insert(schema.launches).values({ txHash, tokenAddress: addr(n), curveAddress: addr(n + 1_000), creator: addr(1), pairToken: NATIVE_PAIR, blockNumber: String(n) });
+}
+
+const txHashes = async () =>
+  Object.fromEntries((await ctx.db.select().from(schema.callouts).where(eq(schema.callouts.kind, 'system'))).map((r) => [r.text, r.txHash]));
 
 const texts = async () => (await ctx.db.select().from(schema.callouts).where(eq(schema.callouts.kind, 'system'))).map((r) => r.text).sort();
 
@@ -99,6 +107,21 @@ describe('system callouts', () => {
     await tick();
     expect(f.asked[1].after).toBe(1_001);
     expect((await texts()).filter((t) => t.includes('bought'))).toEqual(['0x12ab…9f0c bought 1.2 ETH of $EULER', '0x12ab…9f0c bought 25 ETH of $EULER']);
+    expect(await txHashes()).toMatchObject({ '0x12ab…9f0c bought 1.2 ETH of $EULER': '0xb1001-1', '0x12ab…9f0c bought 25 ETH of $EULER': '0xb1010-2' });
+  });
+
+  it('links launch callouts to the recorded launch transaction, filling it in once the launch is recorded', async () => {
+    await coin(1, 'EULER');
+    await coin(2, 'GAUSS');
+    await recordLaunch(1, '0xaaa');
+    const tick = () => systemCalloutsTick({ db: ctx.db, pubsub: ctx.pubsub, now: ctx.now });
+
+    await tick();
+    expect(await txHashes()).toEqual({ '$EULER launched': '0xaaa', '$GAUSS launched': null });
+
+    await recordLaunch(2, '0xbbb');
+    expect(await tick()).toBe(0);
+    expect(await txHashes()).toEqual({ '$EULER launched': '0xaaa', '$GAUSS launched': '0xbbb' });
   });
 
   it('broadcasts only recent events, oldest first, as "hood.exe"', async () => {
@@ -109,5 +132,6 @@ describe('system callouts', () => {
     await systemCalloutsTick({ db: ctx.db, pubsub: ctx.pubsub, now: ctx.now });
     expect(seen.map((m) => m.callout.text)).toEqual(['$NEW launched']);
     expect(seen[0].callout).toMatchObject({ wallet: 'hood.exe', official: true, kind: 'system' });
+    expect(seen[0].callout).not.toHaveProperty('txHash');
   });
 });

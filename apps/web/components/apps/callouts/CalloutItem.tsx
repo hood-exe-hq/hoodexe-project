@@ -2,6 +2,7 @@
 
 import { shortAddress } from '@hood/shared';
 import { HoodLogo } from '@/components/xp/Icons';
+import { TxLink } from '@/components/xp/TxLink';
 import { REACTION_KINDS, type Callout, type ReactionKind } from '@/lib/api';
 import { openToken } from '@/lib/openApp';
 import { timeAgo } from '../explore/format';
@@ -54,6 +55,7 @@ export function CalloutItem({ callout: c, flash, onReact }: Props) {
           <time className={styles.time} dateTime={c.createdAt} title={new Date(c.createdAt).toLocaleString()}>
             {timeAgo(c.createdAt)}
           </time>
+          {c.txHash && <TxLink hash={c.txHash} className={styles.tx} />}
         </div>
         <p className={styles.text}>{c.text}</p>
         <div className={styles.reactions}>

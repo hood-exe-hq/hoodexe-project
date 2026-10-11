@@ -40,6 +40,7 @@
 .ticker { font: inherit; font-weight: 700; color: var(--hood-accent); background: none; border: 0; padding: 0; }
 button.ticker:hover { text-decoration: underline; }
 .time { color: #8a8a8a; margin-left: auto; white-space: nowrap; }
+.tx { color: #8a8a8a; white-space: nowrap; }
 .text { margin: 2px 0 4px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.4; }
 
 .reactions { display: flex; gap: 4px; }
