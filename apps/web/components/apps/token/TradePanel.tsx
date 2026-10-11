@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { erc20Abi, parseEventLogs, parseUnits, type Address, type Hash } from 'viem';
 import { getAccount, simulateContract, switchChain, waitForTransactionReceipt, writeContract } from 'wagmi/actions';
-import { addressUrl, buyPresets, findPair, formatAmount, formatBps, ponsCurveAbi, quoteBuy, quoteSell, txUrl, withSlippage } from '@hood/shared';
+import { addressUrl, buyPresets, findPair, formatAmount, formatBps, ponsCurveAbi, quoteBuy, quoteSell, withSlippage } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
 import { ConnectWallet } from '@/components/xp/ConnectWallet';
 import { InfoIcon, WarningIcon } from '@/components/xp/Icons';
+import { TxLink } from '@/components/xp/TxLink';
 import { failureReason, track } from '@/lib/analytics';
 import type { TokenDetail } from '@/lib/api';
 import { useIdentity } from '@/lib/identity';
@@ -18,7 +19,7 @@ import { chain, wagmiConfig } from '@/lib/wagmi';
 import styles from './TradePanel.module.css';
 
 type Side = 'buy' | 'sell';
-type Status = { kind: 'idle' } | { kind: 'busy'; label: string; hash?: Hash } | { kind: 'done'; text: string; hash: Hash } | { kind: 'error'; text: string };
+type Status = { kind: 'idle' } | { kind: 'busy'; label: string; hash?: Hash; approval?: boolean } | { kind: 'done'; text: string; hash: Hash } | { kind: 'error'; text: string };
 
 const SLIPPAGE = { min: 0.5, max: 20, default: '5' };
 const SELL_SHARES = [25, 50, 75, 100] as const;
@@ -105,7 +106,7 @@ export function TradePanel({ token: t, paused = false }: { token: TokenDetail; p
         const approveToken = side === 'buy' ? pairAddress : tokenAddress;
         setStatus({ kind: 'busy', label: `Approve ${unit} in your wallet…` });
         const hash = await writeContract(wagmiConfig, { address: approveToken, abi: erc20Abi, functionName: 'approve', args: [curveAddress, amountIn] });
-        setStatus({ kind: 'busy', label: 'Confirming approval…', hash });
+        setStatus({ kind: 'busy', label: 'Confirming approval…', hash, approval: true });
         const r = await waitForTransactionReceipt(wagmiConfig, { hash });
         if (r.status !== 'success') throw new Error('The approval failed.');
         await balances.refetch();
@@ -317,9 +318,7 @@ export function TradePanel({ token: t, paused = false }: { token: TokenDetail; p
       {status.kind === 'error' && <p className={styles.error}>{status.text}</p>}
       {status.kind === 'done' && <p className={styles.done}>{status.text}</p>}
       {(status.kind === 'done' || (status.kind === 'busy' && status.hash)) && (
-        <a href={txUrl(status.hash!)} target="_blank" rel="noopener noreferrer" className={styles.muted}>
-          Transaction on Blockscout
-        </a>
+        <TxLink hash={status.hash!} label={status.kind === 'busy' && status.approval ? 'Approval' : 'Transaction'} className={styles.muted} />
       )}
       {live.error && <p className={styles.error}>Could not read the curve. Check your connection.</p>}
 

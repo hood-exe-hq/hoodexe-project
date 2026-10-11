@@ -18,3 +18,6 @@ export function shortAddress(address: string): string {
   if (address.length < 12) return address;
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
+
+/** 0x12ab…9f0c for a transaction hash. */
+export const shortHash = shortAddress;

@@ -112,6 +112,7 @@ export async function deployLaunch(draft: Draft, terms: LaunchTerms, onStep: (st
     if (allowance < amount) {
       onStep('approve');
       const hash = await writeContract(wagmiConfig, { address: token, abi: erc20Abi, functionName: 'approve', args: [spender, amount] });
+      onStep('approve', hash);
       const r = await waitForTransactionReceipt(wagmiConfig, { hash });
       if (r.status !== 'success') throw new Error('The approval transaction failed.');
     }

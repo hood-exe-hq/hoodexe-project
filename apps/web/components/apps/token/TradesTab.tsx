@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { shortAddress, txUrl } from '@hood/shared';
+import { shortAddress } from '@hood/shared';
+import { TxLink } from '@/components/xp/TxLink';
 import { ApiError, fetchTrades } from '@/lib/api';
 import { formatQuote, timeAgo } from '../explore/format';
 import { formatPrice } from './PriceChart';
@@ -27,21 +28,21 @@ export function TradesTab({ address, symbol, pairSymbol, paused }: { address: st
           <th scope="col">${symbol}</th>
           <th scope="col">Price</th>
           <th scope="col">Trader</th>
+          <th scope="col">Tx</th>
         </tr>
       </thead>
       <tbody>
         {q.data.map((t) => (
           <tr key={t.id}>
-            <td>
-              <a href={txUrl(t.txHash)} target="_blank" rel="noopener noreferrer" title="View transaction on Blockscout">
-                {timeAgo(new Date(t.time * 1000).toISOString())}
-              </a>
-            </td>
+            <td>{timeAgo(new Date(t.time * 1000).toISOString())}</td>
             <td className={t.side === 'buy' ? styles.buy : styles.sell}>{t.side === 'buy' ? 'Buy' : 'Sell'}</td>
             <td>{formatQuote(t.quote, '').trim()}</td>
             <td>{compact(t.tokens)}</td>
             <td>{formatPrice(t.price)}</td>
             <td className={styles.mono}>{shortAddress(t.trader)}</td>
+            <td>
+              <TxLink hash={t.txHash} />
+            </td>
           </tr>
         ))}
       </tbody>

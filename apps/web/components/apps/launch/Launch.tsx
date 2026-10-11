@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Hash } from 'viem';
-import { addressUrl, findPair, formatAmount, normalizeStatement, txUrl, type RigorScore } from '@hood/shared';
+import { addressUrl, findPair, formatAmount, normalizeStatement, type RigorScore } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
 import { ProgressBar } from '@/components/xp/Controls';
 import { Dialog, MessageBox } from '@/components/xp/Dialog';
 import { LaunchIcon } from '@/components/xp/Icons';
 import { latexErrors } from '@/components/xp/Latex';
+import { TxLink } from '@/components/xp/TxLink';
 import { failureReason, track } from '@/lib/analytics';
 import { ApiError, scoreTheorem } from '@/lib/api';
 import { useIdentity } from '@/lib/identity';
@@ -136,7 +137,8 @@ export function Launch({ win }: { win: WindowState }) {
         setDeploy((cur) => {
           const prev = cur.state === 'running' ? cur : { step, done: [] as DeployStep[], hash: undefined };
           const done = prev.step === step ? prev.done : [...prev.done, prev.step];
-          return { state: 'running', step, done, hash: hash ?? prev.hash };
+          // A new step without a hash drops the previous one, so the approval's hash is never shown as the launch's.
+          return { state: 'running', step, done, hash: hash ?? (prev.step === step ? prev.hash : undefined) };
         }),
       );
       setDeploy({ state: 'done', result });
@@ -259,9 +261,7 @@ export function Launch({ win }: { win: WindowState }) {
           </p>
           {deploy.result.tokensOut != null && <p style={{ margin: '0 0 6px' }}>Your dev buy filled {formatAmount(deploy.result.tokensOut, 18, { compact: true })} ${draft.ticker}.</p>}
           <p style={{ margin: 0 }}>
-            <a href={txUrl(deploy.result.txHash)} target="_blank" rel="noopener noreferrer">
-              Transaction on Blockscout
-            </a>
+            <TxLink hash={deploy.result.txHash} label="Transaction" />
           </p>
           {!deploy.result.recorded && <p className={styles.hint}>hood.exe will pick the launch up from the chain shortly.</p>}
         </MessageBox>
@@ -289,9 +289,7 @@ function DeployProgress({ step, done, hash, hasApproval }: { step: DeployStep; d
       <ProgressBar value={((index + 0.5) / steps.length) * 100} label="Launch progress" />
       {hash && (
         <p className={styles.hint}>
-          <a href={txUrl(hash)} target="_blank" rel="noopener noreferrer">
-            View transaction on Blockscout
-          </a>
+          <TxLink hash={hash} label={step === 'approve' ? 'Approval' : 'Transaction'} />
         </p>
       )}
     </Dialog>
