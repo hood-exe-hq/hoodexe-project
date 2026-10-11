@@ -3,36 +3,52 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { APPS, DESKTOP_APPS, type AppId } from '@/components/apps/meta';
 import { openApp } from '@/lib/openApp';
+import { X_URL } from '@/lib/social';
 import styles from './Desktop.module.css';
+import { XIcon } from './Icons';
 
 const DOUBLE_TAP_MS = 400;
 
-export function DesktopIcons({ selected, onSelect }: { selected: AppId | null; onSelect: (id: AppId | null) => void }) {
-  const lastTap = useRef<{ id: AppId; t: number } | null>(null);
+/** Desktop shortcuts that open a web page in a new tab instead of a window. */
+const LINKS = { x: { label: 'hood.exe on X', Icon: XIcon, href: X_URL } };
+type LinkId = keyof typeof LINKS;
+export type DesktopItemId = AppId | LinkId;
+
+const isLink = (id: DesktopItemId): id is LinkId => id in LINKS;
+/** Links sit just before About and the Recycle Bin. */
+const ITEMS: DesktopItemId[] = DESKTOP_APPS.flatMap((id): DesktopItemId[] => (id === 'about' ? ['x', id] : [id]));
+
+function open(id: DesktopItemId) {
+  if (isLink(id)) window.open(LINKS[id].href, '_blank', 'noopener,noreferrer');
+  else openApp(id);
+}
+
+export function DesktopIcons({ selected, onSelect }: { selected: DesktopItemId | null; onSelect: (id: DesktopItemId | null) => void }) {
+  const lastTap = useRef<{ id: DesktopItemId; t: number } | null>(null);
 
   // One handler for mouse and touch: a second click/tap on the same icon within 400 ms opens it.
-  const onClick = (id: AppId, now: number) => {
+  const onClick = (id: DesktopItemId, now: number) => {
     const prev = lastTap.current;
     if (prev && prev.id === id && now - prev.t < DOUBLE_TAP_MS) {
       lastTap.current = null;
-      openApp(id);
+      open(id);
       return;
     }
     lastTap.current = { id, t: now };
     onSelect(id);
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, id: AppId) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, id: DesktopItemId) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      openApp(id);
+      open(id);
     }
   };
 
   return (
     <ul className={styles.icons} aria-label="Desktop">
-      {DESKTOP_APPS.map((id) => {
-        const app = APPS[id];
+      {ITEMS.map((id) => {
+        const app = isLink(id) ? LINKS[id] : APPS[id];
         return (
           <li key={id}>
             <button

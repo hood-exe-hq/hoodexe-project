@@ -2,14 +2,14 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useDisconnect } from 'wagmi';
-import { APPS, isAppId, type AppId } from '@/components/apps/meta';
+import { APPS, isAppId } from '@/components/apps/meta';
 import { APP_COMPONENTS } from '@/components/apps';
 import { logout } from '@/lib/api';
 import { isAddress } from 'viem';
 import { openApp, openToken } from '@/lib/openApp';
 import { useTray } from '@/store/tray';
 import { useWindows } from '@/store/windows';
-import { DesktopIcons } from './DesktopIcons';
+import { DesktopIcons, type DesktopItemId } from './DesktopIcons';
 import { MessageBox } from './Dialog';
 import { BOOT_MS, BootScreen, WELCOME_MS, WelcomeScreen } from './Boot';
 import { LogOffDialog, OffScreen, ShutDownDialog } from './Power';
@@ -30,7 +30,7 @@ export function Desktop() {
   const unread = useTray((s) => s.unread);
   const { disconnect } = useDisconnect();
 
-  const [selected, setSelected] = useState<AppId | null>(null);
+  const [selected, setSelected] = useState<DesktopItemId | null>(null);
   const [startOpen, setStartOpen] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
 
