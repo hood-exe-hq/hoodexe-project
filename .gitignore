@@ -12,6 +12,6 @@ coverage/
 npm-debug.log*
 pnpm-debug.log*
 /demo
-
+/brand
 # Local chain snapshot (pnpm fork)
 .fork/
