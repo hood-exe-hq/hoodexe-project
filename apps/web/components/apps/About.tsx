@@ -17,7 +17,6 @@ const ROWS: [string, ReactNode][] = [
   ['Rigor engine', 'DeepSeek — AI estimate, not a proof check'],
   ['Callouts', 'Live feed, Sign-In with Ethereum'],
   ['Theme', 'Luna-style recreation, original assets'],
-  ['Operator', 'Wealthy People'],
   [
     'X',
     <a key="x" href={X_URL} target="_blank" rel="noopener noreferrer">
@@ -50,7 +49,7 @@ export function About({ win }: { win: WindowState }) {
           </table>
         </GroupBox>
         <p className={styles.fineprint}>
-          Pons V2 contracts are unaudited. Memecoins can go to zero. Not affiliated with Robinhood Markets, Inc.
+          Pons V2 contracts are unaudited. Memecoins can go to zero.
         </p>
         <p className={styles.legalLinks}>
           <button type="button" onClick={() => openApp('terms')}>

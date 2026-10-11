@@ -42,8 +42,7 @@ export function Welcome() {
       </div>
 
       <p className={styles.fineprint}>
-        hood.exe is non-custodial: trades go straight from your wallet to Pons. Not affiliated with Robinhood Markets,
-        Inc.
+        hood.exe is non-custodial: trades go straight from your wallet to Pons.
       </p>
     </div>
   );

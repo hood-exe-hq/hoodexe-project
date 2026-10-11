@@ -10,7 +10,7 @@ import { wagmiConfig } from '@/lib/wagmi';
 import { xpRainbowTheme } from '@/lib/rainbowTheme';
 
 const Disclaimer: DisclaimerComponent = ({ Text }) => (
-  <Text>hood.exe is non-custodial software. Your keys never leave your wallet. Not affiliated with Robinhood Markets, Inc.</Text>
+  <Text>hood.exe is non-custodial software. Your keys never leave your wallet.</Text>
 );
 
 /** Starts analytics and records fresh wallet connections (which wallet app, never the address). */

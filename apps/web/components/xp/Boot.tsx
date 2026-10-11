@@ -22,7 +22,7 @@ export function BootScreen() {
           <span />
         </div>
       </div>
-      <div className={styles.footLeft}>Copyright © 2026 Wealthy People</div>
+      <div className={styles.footLeft}>Copyright © 2026 hood.exe</div>
       <div className={styles.footRight}>
         <HoodLogo size={18} /> hood.exe
       </div>

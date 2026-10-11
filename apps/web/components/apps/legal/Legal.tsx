@@ -15,7 +15,6 @@ import styles from './Legal.module.css';
  */
 export const LEGAL_DRAFT = true;
 export const LEGAL_UPDATED = '9 October 2026';
-const OPERATOR = 'Wealthy People';
 const CONTACT: string | null = null;
 
 /** The points the one-time risk dialog shows before a first launch or trade. */
@@ -46,7 +45,7 @@ function Doc({ title, children, win }: { title: string; children: ReactNode; win
         {LEGAL_DRAFT && <p className={styles.draft}>Draft pending legal review. The final text may differ.</p>}
         {children}
         <p className={styles.contact}>
-          Questions: {CONTACT ?? 'contact details will be published here before launch.'} hood.exe is not affiliated with Robinhood Markets, Inc. or with Pons.
+          Questions: {CONTACT ?? 'contact details will be published here before launch.'} hood.exe is not affiliated with Pons.
         </p>
       </div>
       <div className={shared.footerRow}>
@@ -66,7 +65,7 @@ export function Terms({ win }: { win: WindowState }) {
   return (
     <Doc title="Terms of Use" win={win}>
       <p>
-        These terms cover your use of hood.exe (the website and its API), operated by {OPERATOR} (&quot;we&quot;). By using hood.exe you agree to them. If you
+        These terms cover your use of hood.exe (the website and its API); &quot;we&quot; means the team that runs it. By using hood.exe you agree to them. If you
         don&apos;t agree, don&apos;t use it.
       </p>
       <h2>1. What hood.exe is</h2>
@@ -161,7 +160,7 @@ export function Risk({ win }: { win: WindowState }) {
 export function Privacy({ win }: { win: WindowState }) {
   return (
     <Doc title="Privacy notice" win={win}>
-      <p>This notice explains what hood.exe ({OPERATOR}) handles about you and why. We don&apos;t sell personal data.</p>
+      <p>This notice explains what hood.exe handles about you and why. We don&apos;t sell personal data.</p>
       <h2>Public by design</h2>
       <p>
         Your wallet address, launches, trades and balances are public on Robinhood Chain. Launch metadata (logo, theorem, description) is public on IPFS.

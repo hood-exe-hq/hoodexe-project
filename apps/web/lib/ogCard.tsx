@@ -54,7 +54,6 @@ export function Footer() {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', fontSize: 22, color: '#4b4b4b' }}>
       <span style={{ fontWeight: 700, color: '#0a246a' }}>hood.exe · Robinhood Chain · routed through Pons</span>
-      <span>Not affiliated with Robinhood Markets, Inc.</span>
     </div>
   );
 }
