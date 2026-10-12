@@ -23,6 +23,12 @@ const LEVELS: [PresetDifficulty, string][] = [
 const LEVEL_NAME = Object.fromEntries(LEVELS) as Record<PresetDifficulty, string>;
 const MOBILE_QUERY = '(max-width: 640px)';
 const MIN_WINDOW = { w: 240, cell: 16 } as const;
+/**
+ * Spare pixels around the board. Sizes are measured in whole pixels but laid out in fractions (browser zoom,
+ * Retina scaling), so a window fitted exactly can leave the board a hair too big: scrollbars then crop it
+ * (invisible ones on macOS) or fight the cell size.
+ */
+const FIT_SLACK = 2;
 
 /** Minesweeper.exe (hood-exe-minesweeper-brief.md): menu bar, game, dialogs. Lazy-loaded on first open. */
 export default function MinesweeperWindow({ win }: { win: WindowState }) {
@@ -38,19 +44,38 @@ export default function MinesweeperWindow({ win }: { win: WindowState }) {
     track('game_opened', { game: 'minesweeper' });
   }, []);
 
-  // Fit the window to the board whenever its size changes: the largest cell (up to CELL_MAX) that keeps the
-  // window on screen. Phones skip this; there every window fills the screen and the board scrolls instead.
+  // Fit the window to the board whenever its size or the browser window changes: the largest cell (up to
+  // CELL_MAX) that keeps the window on screen. Phones skip this; there every window fills the screen and the
+  // board scrolls instead.
   const { rows, cols } = state;
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
     const winEl = scroller?.closest<HTMLElement>('[data-window]');
-    if (!scroller || !winEl || window.matchMedia(MOBILE_QUERY).matches) return;
-    const chromeW = winEl.offsetWidth - scroller.offsetWidth + BOARD_BORDER;
-    const chromeH = winEl.offsetHeight - scroller.offsetHeight + BOARD_BORDER;
-    const vw = window.innerWidth - 8;
-    const vh = window.innerHeight - 30 - 8;
-    const cell = Math.max(MIN_WINDOW.cell, Math.min(CELL_MAX, Math.floor(Math.min((vw - chromeW) / cols, (vh - chromeH) / rows))));
-    useWindows.getState().resize(win.id, Math.max(MIN_WINDOW.w, chromeW + cols * cell), chromeH + rows * cell);
+    if (!scroller || !winEl) return;
+    const fit = () => {
+      if (window.matchMedia(MOBILE_QUERY).matches) return;
+      const chromeW = winEl.offsetWidth - scroller.offsetWidth + BOARD_BORDER + FIT_SLACK;
+      const chromeH = winEl.offsetHeight - scroller.offsetHeight + BOARD_BORDER + FIT_SLACK;
+      const vw = window.innerWidth - 8;
+      const vh = window.innerHeight - 30 - 8;
+      const cell = Math.max(MIN_WINDOW.cell, Math.min(CELL_MAX, Math.floor(Math.min((vw - chromeW) / cols, (vh - chromeH) / rows))));
+      useWindows.getState().resize(win.id, Math.max(MIN_WINDOW.w, chromeW + cols * cell), chromeH + rows * cell);
+    };
+    fit();
+    // Resizing the browser, zooming it, or a late font changing the menu height all call for a refit.
+    let frame = 0;
+    const refit = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    };
+    window.addEventListener('resize', refit);
+    let live = true;
+    document.fonts?.ready.then(() => live && refit());
+    return () => {
+      live = false;
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', refit);
+    };
   }, [win.id, rows, cols]);
 
   // F2 starts a new game while this window is the focused one (Esc closes dialogs, in Dialog itself).

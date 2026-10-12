@@ -76,7 +76,9 @@ export function Minesweeper({ game, active, scrollerRef }: Props) {
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const measure = () => setFit(Math.floor(Math.min((el.clientWidth - BOARD_BORDER) / cols, (el.clientHeight - BOARD_BORDER) / rows)));
+    // clientWidth/Height round to whole pixels, possibly up; the spare pixel keeps a fitted board from
+    // overflowing by a fraction and pulling in scrollbars.
+    const measure = () => setFit(Math.floor(Math.min((el.clientWidth - BOARD_BORDER - 1) / cols, (el.clientHeight - BOARD_BORDER - 1) / rows)));
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
