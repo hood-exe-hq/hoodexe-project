@@ -23,20 +23,39 @@ function Svg({ size = 32, className, children }: IconProps & { children: ReactNo
 
 const gid = (raw: string) => raw.replace(/[^a-zA-Z0-9_-]/g, '');
 
-/** The hood.exe brand mark (a raster, unlike the drawn icons below). 256px source, rounded like an app tile. */
-export function HoodLogo({ size = 32, className }: IconProps) {
+export function HoodLogo(props: IconProps) {
+  const id = gid(useId());
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- tiny static asset; skips the image optimizer
-    <img
-      src="/image/hood-exe-logo-256.png"
-      width={size}
-      height={size}
-      alt=""
-      aria-hidden="true"
-      draggable={false}
-      className={className}
-      style={{ borderRadius: Math.round(size * 0.16), flexShrink: 0 }}
-    />
+    <Svg {...props}>
+      <defs>
+        <linearGradient id={`${id}b`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#4a8fd8" />
+          <stop offset=".45" stopColor="#2b6cb0" />
+          <stop offset="1" stopColor="#1a4b85" />
+        </linearGradient>
+        <linearGradient id={`${id}g`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity=".55" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect x="1.5" y="1.5" width="29" height="29" rx="5" fill={`url(#${id}b)`} stroke="#123a6b" />
+      <path d="M3 7 Q3 3 7 3 H25 Q29 3 29 7 V13 Q16 17 3 13 Z" fill={`url(#${id}g)`} />
+      <text
+        x="15.5"
+        y="24"
+        textAnchor="middle"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontStyle="italic"
+        fontWeight="700"
+        fontSize="21"
+        fill="#fff"
+        stroke="#0f3463"
+        strokeWidth=".6"
+      >
+        H
+      </text>
+      <circle cx="25.2" cy="25.2" r="2.6" fill="#ff6b00" stroke="#9a3f00" strokeWidth=".7" />
+    </Svg>
   );
 }
 
