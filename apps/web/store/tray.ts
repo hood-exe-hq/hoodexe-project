@@ -3,13 +3,22 @@ import type { Callout } from '@/lib/api';
 import type { TradeBalloon } from '@/lib/tradeBalloons';
 
 const PREF_KEY = 'hood.balloons';
+const SOUND_KEY = 'hood.balloonSound';
 
-/** localStorage can be missing or throw (private windows, blocked storage); balloons default to on. */
-function readEnabled(): boolean {
+/** localStorage can be missing or throw (private windows, blocked storage); balloons and their sound default to on. */
+function readOn(key: string): boolean {
   try {
-    return typeof window === 'undefined' || window.localStorage.getItem(PREF_KEY) !== 'off';
+    return typeof window === 'undefined' || window.localStorage.getItem(key) !== 'off';
   } catch {
     return true;
+  }
+}
+
+function writeOn(key: string, on: boolean) {
+  try {
+    window.localStorage.setItem(key, on ? 'on' : 'off');
+  } catch {
+    // Not persisted; still applies for this session.
   }
 }
 
@@ -21,6 +30,8 @@ type TrayStore = {
   trade: TradeBalloon | null;
   /** The user's balloon toggle (docs/BRIEF.md §5.6), remembered per browser. */
   balloonsEnabled: boolean;
+  /** Whether a balloon chimes as it pops up (lib/balloonSound.ts), remembered per browser. */
+  soundEnabled: boolean;
   push: (c: Callout) => void;
   dismiss: (id: string) => void;
   showTrade: (b: TradeBalloon) => void;
@@ -28,6 +39,7 @@ type TrayStore = {
   clearAll: () => void;
   markRead: () => void;
   setBalloonsEnabled: (on: boolean) => void;
+  setSoundEnabled: (on: boolean) => void;
 };
 
 /** At most this many balloons are stacked; older ones make way. */
@@ -37,7 +49,8 @@ export const useTray = create<TrayStore>((set) => ({
   unread: false,
   balloons: [],
   trade: null,
-  balloonsEnabled: readEnabled(),
+  balloonsEnabled: readOn(PREF_KEY),
+  soundEnabled: readOn(SOUND_KEY),
   push: (c) =>
     set((s) => ({
       unread: true,
@@ -49,11 +62,11 @@ export const useTray = create<TrayStore>((set) => ({
   clearAll: () => set({ balloons: [] }),
   markRead: () => set({ unread: false }),
   setBalloonsEnabled: (on) => {
-    try {
-      window.localStorage.setItem(PREF_KEY, on ? 'on' : 'off');
-    } catch {
-      // Not persisted; still applies for this session.
-    }
+    writeOn(PREF_KEY, on);
     set((s) => ({ balloonsEnabled: on, balloons: on ? s.balloons : [], trade: on ? s.trade : null }));
+  },
+  setSoundEnabled: (on) => {
+    writeOn(SOUND_KEY, on);
+    set({ soundEnabled: on });
   },
 }));

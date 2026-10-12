@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { shortAddress } from '@hood/shared';
 import { formatQuote, timeAgo } from '@/components/apps/explore/format';
 import { fetchRecentActivity, type Activity, type Callout } from '@/lib/api';
+import { playBalloonSound, unlockBalloonSound } from '@/lib/balloonSound';
 import { onLive, startLive } from '@/lib/live';
 import { openApp, openToken } from '@/lib/openApp';
 import { tradeBalloonFeed, type TradeBalloon } from '@/lib/tradeBalloons';
@@ -38,6 +39,29 @@ export function Balloons() {
   const trade = useTray((s) => s.trade);
   const windows = useWindows((s) => s.windows);
   const desktopShown = useStartup((s) => s.done);
+  const sound = useTray((s) => s.soundEnabled);
+
+  // Browsers allow audio only after a click or key press; the first one unlocks the chime.
+  useEffect(() => {
+    const unlock = () => {
+      unlockBalloonSound();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    return unlock;
+  }, []);
+
+  // Chime when a balloon pops up, not when one is dismissed or the setting changes: only for ids not seen before.
+  const heard = useRef(new Set<string>());
+  useEffect(() => {
+    const ids = [...balloons.map((b) => b.id), ...(trade ? [trade.id] : [])];
+    const fresh = ids.some((id) => !heard.current.has(id));
+    if (heard.current.size > 200) heard.current.clear();
+    ids.forEach((id) => heard.current.add(id));
+    if (fresh && sound) playBalloonSound();
+  }, [balloons, trade, sound]);
 
   useEffect(() => {
     const stop = startLive();

@@ -15,6 +15,8 @@ export function Callouts() {
   const isLive = status === 'live';
   const balloons = useTray((s) => s.balloonsEnabled);
   const setBalloonsEnabled = useTray((s) => s.setBalloonsEnabled);
+  const sound = useTray((s) => s.soundEnabled);
+  const setSoundEnabled = useTray((s) => s.setSoundEnabled);
 
   return (
     <div className={styles.window}>
@@ -30,6 +32,9 @@ export function Callouts() {
         )}
         <label className={styles.toggle} title="Pop up new callouts from the tray while this window is closed">
           <input type="checkbox" checked={balloons} onChange={(e) => setBalloonsEnabled(e.target.checked)} /> Tray balloons
+        </label>
+        <label className={styles.toggle} title="Chime when a balloon pops up">
+          <input type="checkbox" checked={balloons && sound} disabled={!balloons} onChange={(e) => setSoundEnabled(e.target.checked)} /> Sound
         </label>
       </div>
       <CalloutFeed onLiveCounts={onLiveCounts} />

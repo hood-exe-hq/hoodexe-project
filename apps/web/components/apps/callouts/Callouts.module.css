@@ -75,6 +75,8 @@ button.ticker:hover { text-decoration: underline; }
   .dotLive, .flash { animation: none; }
 }
 .toggle { margin-left: auto; display: flex; align-items: center; gap: 3px; color: #4b4b4b; white-space: nowrap; }
+.toggle + .toggle { margin-left: 8px; }
+.toggle:has(input:disabled) { opacity: 0.55; }
 
 @media (max-width: 640px) {
   .item { padding: 9px 10px; }
