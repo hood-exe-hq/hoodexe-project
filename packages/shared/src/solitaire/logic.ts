@@ -1,4 +1,4 @@
-import { SUITS, type Card, type GameState, type Move, type Pile, type Rank, type Suit } from './solitaire.types';
+import { SUITS, type Card, type GameState, type Move, type Pile, type Rank, type Suit } from './types';
 
 /**
  * Klondike, draw one (hood-exe-games-brief.md §2). Pure: no DOM, no React, every function returns a new state

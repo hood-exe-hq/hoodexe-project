@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { HEXE_TOKEN } from '@hood/shared';
 import { PRESETS, newGame, reveal, type RankedMove } from '@hood/shared/minesweeper';
+import { findWin } from '../../../packages/shared/src/solitaire/greedy.testutil';
+import { schema } from './db';
 import { alice, bob, setup, signIn } from './test/helpers';
 
 type Ctx = Awaited<ReturnType<typeof setup>>;
@@ -112,5 +115,50 @@ describe('daily Minesweeper leaderboard', () => {
     const a = await signIn(ctx, alice);
     for (let i = 0; i < 30; i++) await start(a);
     expect((await ctx.app.inject({ method: 'POST', url: '/games/minesweeper/start', headers: { cookie: a }, payload: { level: 'beginner' } })).statusCode).toBe(429);
+  });
+});
+
+describe('daily Solitaire leaderboard', () => {
+  // A deal the greedy test player wins, and its moves. The server deals at random, so tests swap this deal in.
+  const { seed, moves } = findWin();
+
+  async function startSolitaire(cookie: string) {
+    const res = await ctx.app.inject({ method: 'POST', url: '/games/solitaire/start', headers: { cookie }, payload: {} });
+    expect(res.statusCode).toBe(200);
+    const run = res.json() as { id: string };
+    await ctx.db.update(schema.gameRuns).set({ seed }).where(eq(schema.gameRuns.id, run.id));
+    return run.id;
+  }
+  const finishSolitaire = (cookie: string, id: string, body: unknown) => ctx.app.inject({ method: 'POST', url: `/games/solitaire/${id}/finish`, headers: { cookie }, payload: body as object });
+
+  it('times a replayed Solitaire win from the deal and ranks it on its own board', async () => {
+    const a = await signIn(ctx, alice);
+    const id = await startSolitaire(a);
+    ctx.advance(185_000);
+    const res = await finishSolitaire(a, id, { moves });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ level: 'klondike', timeMs: 185_000, best: 185_000, rank: 1, players: 1 });
+    const b = (await ctx.app.inject({ method: 'GET', url: '/leaderboard/solitaire', headers: { cookie: a } })).json();
+    expect(b).toMatchObject({ level: 'klondike', players: 1, you: { rank: 1, timeMs: 185_000 } });
+    expect((await board('beginner')).players).toBe(0);
+  });
+
+  it('rejects moves that do not win the deal, and a run sent to the wrong game', async () => {
+    const a = await signIn(ctx, alice);
+    const id = await startSolitaire(a);
+    expect((await finishSolitaire(a, id, { moves: moves.slice(0, -1) })).statusCode).toBe(422);
+    const other = await startSolitaire(a);
+    expect((await finish(a, other, winningMoves('beginner', 1))).statusCode).toBe(404);
+    expect((await finishSolitaire(a, other, { moves: [['x']] })).statusCode).toBe(400);
+  });
+
+  it('allows two hours for a Solitaire game', async () => {
+    const a = await signIn(ctx, alice);
+    const ok = await startSolitaire(a);
+    ctx.advance(90 * 60_000);
+    expect((await finishSolitaire(a, ok, { moves })).statusCode).toBe(200);
+    const late = await startSolitaire(a);
+    ctx.advance(121 * 60_000);
+    expect((await finishSolitaire(a, late, { moves })).statusCode).toBe(410);
   });
 });

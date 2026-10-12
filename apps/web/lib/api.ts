@@ -295,23 +295,24 @@ export async function fetchSession(): Promise<Session | null> {
   }
 }
 
-// ── Daily Minesweeper leaderboard (apps/api/src/routes/games.ts) ──
+// ── Daily game leaderboards (apps/api/src/routes/games.ts) ──
 
-export type RankedLevel = 'beginner' | 'intermediate' | 'expert';
+export type RankedGame = 'minesweeper' | 'solitaire';
+export type RankedLevel = 'beginner' | 'intermediate' | 'expert' | 'klondike';
 
-/** POST /games/minesweeper/start: the server deals the board's seed and starts its clock. Needs a session. */
-export const startRankedGame = (level: RankedLevel) => request('/games/minesweeper/start', json({ level }), z.object({ id: z.string(), seed: z.number().int() }));
+/** POST /games/:game/start: the server deals the seed and starts its clock. Needs a session. */
+export const startRankedGame = (game: RankedGame, level?: RankedLevel) => request(`/games/${game}/start`, json({ level }), z.object({ id: z.string(), seed: z.number().int() }));
 
 const rankedResultSchema = z.object({ level: z.string(), timeMs: z.number(), best: z.number(), rank: z.number().nullable(), players: z.number() });
 export type RankedResult = z.infer<typeof rankedResultSchema>;
 
-/** POST /games/minesweeper/:id/finish: the server replays the moves and, if they win, records its own time. */
-export const finishRankedGame = (id: string, body: { marks: boolean; moves: unknown[] }) => request(`/games/minesweeper/${encodeURIComponent(id)}/finish`, json(body), rankedResultSchema);
+/** POST /games/:game/:id/finish: the server replays the moves and, if they win, records its own time. */
+export const finishRankedGame = (game: RankedGame, id: string, body: object) => request(`/games/${game}/${encodeURIComponent(id)}/finish`, json(body), rankedResultSchema);
 
 const leaderboardEntrySchema = z.object({ rank: z.number(), wallet: z.string(), nickname: z.string().nullable(), timeMs: z.number(), holder: z.boolean() });
 export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
 const leaderboardSchema = z.object({ level: z.string(), day: z.string(), players: z.number(), entries: z.array(leaderboardEntrySchema), you: leaderboardEntrySchema.nullable() });
 export type Leaderboard = z.infer<typeof leaderboardSchema>;
 
-/** GET /leaderboard/minesweeper: today's (UTC) top 20 per level, and your place when signed in. */
-export const fetchLeaderboard = (level: RankedLevel) => request(`/leaderboard/minesweeper?level=${level}`, { method: 'GET' }, leaderboardSchema);
+/** GET /leaderboard/:game: today's (UTC) top 20 for a board, and your place when signed in. */
+export const fetchLeaderboard = (game: RankedGame, level: RankedLevel) => request(`/leaderboard/${game}?level=${level}`, { method: 'GET' }, leaderboardSchema);

@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./minesweeper": "./src/minesweeper/index.ts"
+    "./minesweeper": "./src/minesweeper/index.ts",
+    "./solitaire": "./src/solitaire/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

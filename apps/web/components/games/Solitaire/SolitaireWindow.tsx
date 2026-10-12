@@ -1,24 +1,47 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/xp/Button';
 import { Dialog, MessageBox } from '@/components/xp/Dialog';
 import { SolitaireIcon } from '@/components/xp/Icons';
 import { track } from '@/lib/analytics';
+import { finishRankedGame, startRankedGame, type RankedLevel, type RankedResult } from '@/lib/api';
 import { useWindows, type WindowState } from '@/store/windows';
 import { MenuBar, MenuButton, MenuItem } from '../GameMenu';
+import { LeaderboardDialog, RankedBar, leaderboardKey } from '../Leaderboard';
+import { useRankedSession } from '../useRankedSession';
 import { canAutoComplete, displayScore, elapsedSeconds } from './solitaire.logic';
 import { SolitaireBoard } from './Solitaire';
-import { useSolitaire } from './useSolitaire';
+import { useSolitaire, type SolitaireHost } from './useSolitaire';
 import styles from './solitaire.module.css';
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-type Modal = 'stats' | 'help' | 'about' | null;
+type Modal = 'stats' | 'board' | 'help' | 'about' | null;
+
+const BOARD: [RankedLevel, string][] = [['klondike', 'Klondike']];
 
 /** Solitaire.exe (hood-exe-games-brief.md §2): menu bar, board, status bar, dialogs. Lazy-loaded. */
 export default function SolitaireWindow({ win }: { win: WindowState }) {
-  const g = useSolitaire();
+  // Ranked play (the daily leaderboard) while the connected wallet is signed in.
+  const { signedIn, signIn, signingIn } = useRankedSession();
+  const queryClient = useQueryClient();
+  const host = useMemo<SolitaireHost<RankedResult> | null>(
+    () =>
+      signedIn
+        ? {
+            start: () => startRankedGame('solitaire'),
+            finish: async (id, game) => {
+              const result = await finishRankedGame('solitaire', id, game);
+              void queryClient.invalidateQueries({ queryKey: leaderboardKey('solitaire', 'klondike') });
+              return result;
+            },
+          }
+        : null,
+    [signedIn, queryClient],
+  );
+  const g = useSolitaire<RankedResult>({ ranked: host });
   const { state, settings, stats } = g;
   const active = useWindows((s) => s.activeId === win.id);
   const [modal, setModal] = useState<Modal>(null);
@@ -99,6 +122,7 @@ export default function SolitaireWindow({ win }: { win: WindowState }) {
           </MenuItem>
           <hr />
           <MenuItem onClick={() => setModal('stats')}>Statistics…</MenuItem>
+          <MenuItem onClick={() => setModal('board')}>Today&apos;s Leaderboard…</MenuItem>
           <hr />
           <MenuItem onClick={close}>Exit</MenuItem>
         </MenuButton>
@@ -123,6 +147,27 @@ export default function SolitaireWindow({ win }: { win: WindowState }) {
         <span>Moves: {state.moves}</span>
         <span>Score: {score.toLocaleString('en-US')}</span>
       </div>
+      <RankedBar
+        game="solitaire"
+        level="klondike"
+        unranked={g.unranked}
+        notRankable=""
+        signedIn={signedIn}
+        ranked={g.ranked}
+        onSignIn={signIn}
+        signingIn={signingIn}
+        onOpenBoard={() => setModal('board')}
+      />
+
+      {modal === 'board' && (
+        <LeaderboardDialog
+          game="solitaire"
+          levels={BOARD}
+          initial="klondike"
+          clocked="Times are clocked by the server from the deal to the win."
+          onClose={() => setModal(null)}
+        />
+      )}
 
       {g.resumable && (
         <MessageBox

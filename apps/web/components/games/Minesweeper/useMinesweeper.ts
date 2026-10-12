@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';
+import { errorText, type RankedHost, type RankedState } from '../ranked';
 import { PRESETS, chord, countRevealed, elapsedSeconds, flag, newGame, newSeed, reveal, setMarks, validateCustom } from './minesweeper.logic';
 import type { Difficulty, DifficultyConfig, GameState, PresetDifficulty, RankedMove, WinResult } from './minesweeper.types';
 
@@ -68,25 +69,8 @@ function reducer(s: GameState, a: Action): GameState {
 /** A new best time, for the "fastest time" message. */
 export type NewBestTime = { difficulty: PresetDifficulty; time: number; at: number };
 
-/**
- * How the window plays ranked games (the daily leaderboard), so the hook stays unaware of the API: `start` gets the
- * server's seed at the first click, `finish` sends the moves of a win for the server to replay and time.
- */
-export type RankedHost<R> = {
-  start: (level: PresetDifficulty) => Promise<{ id: string; seed: number }>;
-  finish: (id: string, game: { marks: boolean; moves: RankedMove[] }) => Promise<R>;
-};
-
-/** Where the current game stands with the leaderboard. */
-export type RankedState<R> =
-  | { phase: 'idle' }
-  | { phase: 'starting' }
-  | { phase: 'playing' }
-  | { phase: 'submitting' }
-  | { phase: 'done'; result: R }
-  | { phase: 'unranked' | 'error'; message: string };
-
-const errorText = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong.');
+/** Ranked Minesweeper (../ranked.ts): the server's seed comes at the first click; a win sends its moves. */
+export type MinesweeperHost<R> = RankedHost<PresetDifficulty, { marks: boolean; moves: RankedMove[] }, R>;
 
 /** What a move records for a ranked replay; null for actions that aren't moves. */
 function recordOf(a: Action): RankedMove | null {
@@ -97,7 +81,7 @@ function recordOf(a: Action): RankedMove | null {
   return null;
 }
 
-export function useMinesweeper<R = unknown>({ onWin, ranked: rankedHost = null }: { onWin?: (result: WinResult) => void; ranked?: RankedHost<R> | null } = {}) {
+export function useMinesweeper<R = unknown>({ onWin, ranked: rankedHost = null }: { onWin?: (result: WinResult) => void; ranked?: MinesweeperHost<R> | null } = {}) {
   // Minesweeper only renders in the browser (the desktop opens windows after it mounts), so storage is readable here.
   const [settings, setSettingsState] = useState<Settings>(loadSettings);
   const [stats, setStats] = useState<Stats>(() => load(KEYS.stats, NO_STATS));

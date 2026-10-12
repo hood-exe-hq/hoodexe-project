@@ -137,8 +137,8 @@ export const reactions = pgTable(
 );
 
 /**
- * Ranked game runs for the daily leaderboard. The server deals the seed and starts the clock (POST
- * /games/minesweeper/start); a win is checked by replaying its moves, and its time is the server's own count from
+ * Ranked game runs for the daily leaderboards (Minesweeper, Solitaire). The server deals the seed and starts the clock (POST
+ * /games/:game/start); a win is checked by replaying its moves, and its time is the server's own count from
  * start to finish, so neither the board nor the time comes from the browser. time_ms stays null until a verified win.
  */
 export const gameRuns = pgTable(
@@ -146,8 +146,9 @@ export const gameRuns = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     wallet: text('wallet').notNull(),
-    game: text('game', { enum: ['minesweeper'] }).notNull(),
-    level: text('level', { enum: ['beginner', 'intermediate', 'expert'] }).notNull(),
+    game: text('game', { enum: ['minesweeper', 'solitaire'] }).notNull(),
+    /** Minesweeper's three levels; Solitaire has one (Klondike, draw one). */
+    level: text('level', { enum: ['beginner', 'intermediate', 'expert', 'klondike'] }).notNull(),
     seed: integer('seed').notNull(),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
     finishedAt: timestamp('finished_at', { withTimezone: true }),

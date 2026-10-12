@@ -5,24 +5,23 @@ import { useQuery } from '@tanstack/react-query';
 import { shortAddress } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
 import { Dialog } from '@/components/xp/Dialog';
-import { fetchLeaderboard, type LeaderboardEntry, type RankedLevel, type RankedResult } from '@/lib/api';
+import { fetchLeaderboard, type LeaderboardEntry, type RankedGame, type RankedLevel, type RankedResult } from '@/lib/api';
 import { HOOD_TOKEN } from '@/lib/hoodToken';
-import type { RankedState } from './useMinesweeper';
-import styles from './minesweeper.module.css';
+import type { RankedState } from './ranked';
+import styles from './ranked.module.css';
 
-export const RANKED_LEVELS: [RankedLevel, string][] = [
-  ['beginner', 'Beginner'],
-  ['intermediate', 'Intermediate'],
-  ['expert', 'Expert'],
-];
-
-/** 41.3 s */
-export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+/** 41.3 s, or 3:05.2 from a minute up (Solitaire). */
+export function seconds(ms: number): string {
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)} s`;
+  const rest = s - 60 * Math.floor(s / 60);
+  return `${Math.floor(s / 60)}:${rest.toFixed(1).padStart(4, '0')}`;
+}
 const who = (e: LeaderboardEntry) => e.nickname ?? shortAddress(e.wallet);
 
-export const leaderboardKey = (level: RankedLevel) => ['leaderboard', 'minesweeper', level] as const;
-export const useLeaderboard = (level: RankedLevel | null) =>
-  useQuery({ queryKey: leaderboardKey(level ?? 'beginner'), queryFn: () => fetchLeaderboard(level!), enabled: !!level, refetchInterval: 60_000 });
+export const leaderboardKey = (game: RankedGame, level: RankedLevel) => ['leaderboard', game, level] as const;
+export const useLeaderboard = (game: RankedGame, level: RankedLevel | null) =>
+  useQuery({ queryKey: leaderboardKey(game, level ?? 'beginner'), queryFn: () => fetchLeaderboard(game, level!), enabled: !!level, refetchInterval: 60_000 });
 
 function HolderBadge() {
   if (!HOOD_TOKEN) return null;
@@ -33,11 +32,22 @@ function HolderBadge() {
   );
 }
 
-/** "Today's Leaderboard": the top 20 per level for the current UTC day, and where you stand. */
-export function LeaderboardDialog({ initial, onClose }: { initial: RankedLevel; onClose: () => void }) {
+type DialogProps = {
+  game: RankedGame;
+  /** The boards to choose from, with their names; one board needs no tabs. */
+  levels: [RankedLevel, string][];
+  initial: RankedLevel;
+  /** How the time is clocked, for the footnote. */
+  clocked: string;
+  onClose: () => void;
+};
+
+/** "Today's Leaderboard": the top 20 of a board for the current UTC day, and where you stand. */
+export function LeaderboardDialog({ game, levels, initial, clocked, onClose }: DialogProps) {
   const [level, setLevel] = useState<RankedLevel>(initial);
-  const q = useLeaderboard(level);
+  const q = useLeaderboard(game, level);
   const data = q.data;
+  const name = levels.find(([id]) => id === level)?.[1];
 
   return (
     <Dialog
@@ -50,19 +60,21 @@ export function LeaderboardDialog({ initial, onClose }: { initial: RankedLevel; 
         </Button>
       }
     >
-      <div className={styles.levels} role="tablist" aria-label="Level">
-        {RANKED_LEVELS.map(([id, name]) => (
-          <button key={id} type="button" role="tab" aria-selected={level === id} className={level === id ? styles.levelOn : ''} onClick={() => setLevel(id)}>
-            {name}
-          </button>
-        ))}
-      </div>
+      {levels.length > 1 && (
+        <div className={styles.levels} role="tablist" aria-label="Level">
+          {levels.map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={level === id} className={level === id ? styles.levelOn : ''} onClick={() => setLevel(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {q.isPending ? (
         <p className={styles.note}>Loading…</p>
       ) : q.isError ? (
         <p className={styles.error}>Couldn&apos;t load the leaderboard. Try again in a moment.</p>
       ) : !data?.entries.length ? (
-        <p className={styles.empty}>No ranked wins on {RANKED_LEVELS.find(([id]) => id === level)?.[1]} yet today. Be the first.</p>
+        <p className={styles.empty}>No ranked wins{levels.length > 1 ? ` on ${name}` : ''} yet today. Be the first.</p>
       ) : (
         <table className={styles.rankTable}>
           <thead>
@@ -91,14 +103,19 @@ export function LeaderboardDialog({ initial, onClose }: { initial: RankedLevel; 
         </p>
       )}
       <p className={styles.note}>
-        Best ranked time per player, {data?.day ?? 'today'} (UTC). Resets at 00:00 UTC. Times are clocked by the server from your first click to the win.
+        Best ranked time per player, {data?.day ?? 'today'} (UTC). Resets at 00:00 UTC. {clocked}
       </p>
     </Dialog>
   );
 }
 
-type StatusProps = {
+type BarProps = {
+  game: RankedGame;
+  /** This game's board, or null when it can't be ranked (a custom Minesweeper board). */
   level: RankedLevel | null;
+  /** Why this game isn't ranked though the board could be (Solitaire's Deal Again, a resumed game). */
+  unranked?: string | null;
+  notRankable: string;
   signedIn: boolean;
   ranked: RankedState<RankedResult>;
   onSignIn: () => void;
@@ -106,33 +123,35 @@ type StatusProps = {
   onOpenBoard: () => void;
 };
 
-/** The window's status bar: whether this game counts, and how you stand today. */
-export function RankedStatus({ level, signedIn, ranked, onSignIn, signingIn, onOpenBoard }: StatusProps) {
-  const q = useLeaderboard(signedIn ? level : null);
+/** The ranked bar along a game window's bottom: whether this game counts, and how you stand today. */
+export function RankedBar({ game, level, unranked, notRankable, signedIn, ranked, onSignIn, signingIn, onOpenBoard }: BarProps) {
+  const q = useLeaderboard(game, signedIn ? level : null);
   const you = q.data?.you;
 
   let text: ReactNode;
-  if (!level) text = "Custom boards aren't ranked.";
+  if (!level) text = notRankable;
   else if (!signedIn)
     text = (
       <>
-        🏆 <button type="button" className={styles.linkBtn} onClick={onSignIn} disabled={signingIn}>
+        🏆{' '}
+        <button type="button" className={styles.linkBtn} onClick={onSignIn} disabled={signingIn}>
           {signingIn ? 'Signing in…' : 'Sign in'}
         </button>{' '}
         to rank today&apos;s times
       </>
     );
-  else if (ranked.phase === 'starting') text = 'Dealing a ranked board…';
+  else if (ranked.phase === 'starting') text = 'Dealing a ranked game…';
   else if (ranked.phase === 'submitting') text = 'Checking your win…';
   else if (ranked.phase === 'done') {
     const r = ranked.result;
     text = `🏆 ${seconds(r.timeMs)}${r.best < r.timeMs ? ` · your best today ${seconds(r.best)}` : ''}${r.rank ? ` · #${r.rank} of ${r.players}` : ''}`;
   } else if (ranked.phase === 'unranked' || ranked.phase === 'error') text = `Not ranked: ${ranked.message}`;
+  else if (unranked) text = unranked;
   else text = you ? `🏆 Ranked · today's best ${seconds(you.timeMs)} · #${you.rank} of ${q.data!.players}` : '🏆 Ranked · no time yet today';
 
   return (
-    <div className={styles.status}>
-      <span className={styles.statusText}>{text}</span>
+    <div className={styles.bar}>
+      <span className={styles.text}>{text}</span>
       <button type="button" className={styles.linkBtn} onClick={onOpenBoard}>
         Leaderboard
       </button>

@@ -1,23 +1,20 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { isAddressEqual, type Address } from 'viem';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/xp/Button';
 import { Dialog, MessageBox } from '@/components/xp/Dialog';
 import { MinesweeperIcon } from '@/components/xp/Icons';
 import { track } from '@/lib/analytics';
-import { currentSession, finishRankedGame, startRankedGame, type RankedLevel, type RankedResult } from '@/lib/api';
-import { useIdentity } from '@/lib/identity';
-import { ensureSession } from '@/lib/siwe';
+import { finishRankedGame, startRankedGame, type RankedLevel, type RankedResult } from '@/lib/api';
 import { useWindows, type WindowState } from '@/store/windows';
 import { MenuBar, MenuButton, MenuItem } from '../GameMenu';
-import { LeaderboardDialog, RankedStatus, leaderboardKey } from './Leaderboard';
+import { LeaderboardDialog, RankedBar, leaderboardKey } from '../Leaderboard';
+import { useRankedSession } from '../useRankedSession';
 import { BOARD_BORDER, CELL_MAX, Minesweeper } from './Minesweeper';
 import { CUSTOM_LIMITS, PRESETS, validateCustom } from './minesweeper.logic';
 import type { DifficultyConfig, PresetDifficulty } from './minesweeper.types';
-import { useMinesweeper, type RankedHost } from './useMinesweeper';
+import { useMinesweeper, type MinesweeperHost } from './useMinesweeper';
 import styles from './minesweeper.module.css';
 
 type Modal = 'custom' | 'best' | 'board' | 'help' | 'about' | null;
@@ -39,39 +36,23 @@ const FIT_SLACK = 2;
 
 /** Minesweeper.exe (hood-exe-minesweeper-brief.md): menu bar, game, dialogs. Lazy-loaded on first open. */
 export default function MinesweeperWindow({ win }: { win: WindowState }) {
-  // Ranked play needs the connected wallet signed in (the same session Callouts uses).
-  const { address, connected } = useIdentity();
-  const { openConnectModal } = useConnectModal();
+  // Ranked play (the daily leaderboard) while the connected wallet is signed in.
+  const { signedIn, signIn, signingIn } = useRankedSession();
   const queryClient = useQueryClient();
-  const session = useQuery({ queryKey: ['session'], queryFn: currentSession, staleTime: 60_000, retry: false });
-  const signedIn = connected && !!address && !!session.data && isAddressEqual(session.data as Address, address);
-  const host = useMemo<RankedHost<RankedResult> | null>(
+  const host = useMemo<MinesweeperHost<RankedResult> | null>(
     () =>
       signedIn
         ? {
-            start: (level) => startRankedGame(level),
+            start: (level) => startRankedGame('minesweeper', level),
             finish: async (id, game) => {
-              const result = await finishRankedGame(id, game);
-              void queryClient.invalidateQueries({ queryKey: leaderboardKey(result.level as RankedLevel) });
+              const result = await finishRankedGame('minesweeper', id, game);
+              void queryClient.invalidateQueries({ queryKey: leaderboardKey('minesweeper', result.level as RankedLevel) });
               return result;
             },
           }
         : null,
     [signedIn, queryClient],
   );
-  const [signingIn, setSigningIn] = useState(false);
-  const signIn = async () => {
-    if (!connected || !address) return openConnectModal?.();
-    setSigningIn(true);
-    try {
-      await ensureSession(address);
-      await session.refetch();
-    } catch {
-      // Declined in the wallet: stay unranked.
-    } finally {
-      setSigningIn(false);
-    }
-  };
 
   // The win hook (§10) is where a future whitelist/airdrop mechanic plugs in; nothing listens yet.
   const g = useMinesweeper<RankedResult>({ ranked: host });
@@ -166,9 +147,26 @@ export default function MinesweeperWindow({ win }: { win: WindowState }) {
       </MenuBar>
 
       <Minesweeper game={g} active={active && modal == null} scrollerRef={scrollerRef} />
-      <RankedStatus level={rankedLevel} signedIn={signedIn} ranked={g.ranked} onSignIn={() => void signIn()} signingIn={signingIn} onOpenBoard={() => setModal('board')} />
+      <RankedBar
+        game="minesweeper"
+        level={rankedLevel}
+        notRankable="Custom boards aren't ranked."
+        signedIn={signedIn}
+        ranked={g.ranked}
+        onSignIn={signIn}
+        signingIn={signingIn}
+        onOpenBoard={() => setModal('board')}
+      />
 
-      {modal === 'board' && <LeaderboardDialog initial={rankedLevel ?? 'beginner'} onClose={() => setModal(null)} />}
+      {modal === 'board' && (
+        <LeaderboardDialog
+          game="minesweeper"
+          levels={LEVELS}
+          initial={rankedLevel ?? 'beginner'}
+          clocked="Times are clocked by the server from your first click to the win."
+          onClose={() => setModal(null)}
+        />
+      )}
 
       {g.record && (
         <MessageBox title="Minesweeper" kind="info" onClose={g.dismissRecord}>
