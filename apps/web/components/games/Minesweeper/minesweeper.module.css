@@ -24,8 +24,10 @@
   border: 2px solid;
   border-color: #7b7b7b #fff #fff #7b7b7b;
 }
-/* The board scrolls when it's bigger than the window (Expert on a phone); margin: auto centres it otherwise. */
-.scroller { flex: 1 1 auto; min-height: 0; display: flex; overflow: auto; touch-action: pan-x pan-y; }
+/* The board scrolls only when it is meant to be bigger than the window (Expert on a phone, pinch zoom); a board
+   sized to fit never shows scrollbars, which would crop it. margin: auto centres it. */
+.scroller { flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden; touch-action: pan-x pan-y; }
+.scrolls { overflow: auto; }
 .board {
   flex: 0 0 auto;
   margin: auto;

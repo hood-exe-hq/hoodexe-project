@@ -85,6 +85,9 @@ export function Minesweeper({ game, active, scrollerRef }: Props) {
   }, [scrollerRef, rows, cols]);
   const base = Math.max(coarse ? CELL_MIN.touch : CELL_MIN.mouse, Math.min(CELL_MAX, fit));
   const cell = Math.round(base * (coarse ? zoom : 1));
+  // Scroll only when the board is meant to be bigger than its area (cells at their minimum, or pinch-zoomed). A board
+  // sized to fit never scrolls, so no stray scrollbar can take room from it and crop it.
+  const scrolls = cell > fit;
 
   // ── Pressed cells (sunken while held) and the 😮 face ──
   const [pressed, setPressed] = useState<ReadonlySet<number>>(() => new Set());
@@ -267,7 +270,7 @@ export function Minesweeper({ game, active, scrollerRef }: Props) {
         </div>
         <div
           ref={scrollerRef}
-          className={styles.scroller}
+          className={scrolls ? `${styles.scroller} ${styles.scrolls}` : styles.scroller}
           onPointerLeave={() => (hover.current = null)}
         >
           <Board
