@@ -22,6 +22,17 @@ export function priceScaleFactor(data: { high: number }[]): number {
 }
 
 /**
+ * lightweight-charts draws every time in UTC. Shifting each timestamp by the viewer's UTC offset (its own
+ * documented approach) makes the axis, the crosshair and the day boundaries read in local time. The offset is
+ * taken per timestamp, so a daylight-saving change mid-chart stays right.
+ */
+const toLocal = (t: number) => (t - new Date(t * 1000).getTimezoneOffset() * 60) as UTCTimestamp;
+
+/** Opening zoom: narrow candles from the latest one back, rather than the few there are stretched to fill the width. */
+const BAR_SPACING = 4;
+const RIGHT_OFFSET = 3;
+
+/**
  * Candles in the pair asset (docs/BRIEF.md §5.4): white plot, grey grid, Tahoma 11 px, 180 px tall,
  * with volume as a faint histogram along the bottom. Remount it (key) when the interval changes.
  */
@@ -44,7 +55,7 @@ export function PriceChart({ data }: { data: Candles['candles'] }) {
       },
       grid: { vertLines: { color: '#eeeeee' }, horzLines: { color: '#eeeeee' } },
       rightPriceScale: { borderColor: '#c6c3b6' },
-      timeScale: { borderColor: '#c6c3b6', timeVisible: true, secondsVisible: false },
+      timeScale: { borderColor: '#c6c3b6', timeVisible: true, secondsVisible: false, barSpacing: BAR_SPACING, rightOffset: RIGHT_OFFSET },
       crosshair: { mode: 0 },
     });
     candles.current = c.addSeries(CandlestickSeries, {
@@ -71,19 +82,19 @@ export function PriceChart({ data }: { data: Candles['candles'] }) {
     };
   }, []);
 
-  // The parent remounts the chart per interval; fit once, then leave the user's zoom alone on refreshes.
+  // The parent remounts the chart per interval; set the opening view once, then leave the user's zoom alone on refreshes.
   const fitted = useRef(false);
   useEffect(() => {
     if (!candles.current || !volume.current) return;
     // Fixed after the first data so a refresh can't rescale the axis under the user.
     if (!fitted.current) scale.current = priceScaleFactor(data);
     const k = scale.current;
-    candles.current.setData(data.map((d) => ({ time: d.time as UTCTimestamp, open: d.open * k, high: d.high * k, low: d.low * k, close: d.close * k })));
+    candles.current.setData(data.map((d) => ({ time: toLocal(d.time), open: d.open * k, high: d.high * k, low: d.low * k, close: d.close * k })));
     volume.current.setData(
-      data.map((d) => ({ time: d.time as UTCTimestamp, value: d.volume, color: d.close >= d.open ? 'rgba(74, 140, 37, 0.3)' : 'rgba(201, 31, 0, 0.3)' })),
+      data.map((d) => ({ time: toLocal(d.time), value: d.volume, color: d.close >= d.open ? 'rgba(74, 140, 37, 0.3)' : 'rgba(201, 31, 0, 0.3)' })),
     );
     if (!fitted.current && data.length) {
-      chart.current?.timeScale().fitContent();
+      chart.current?.timeScale().scrollToRealTime();
       fitted.current = true;
     }
   }, [data]);
