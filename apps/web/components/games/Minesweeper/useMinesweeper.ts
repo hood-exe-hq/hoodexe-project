@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { PRESETS, chord, countRevealed, elapsedSeconds, flag, newGame, newSeed, reveal, setMarks, validateCustom } from './minesweeper.logic';
-import type { Difficulty, DifficultyConfig, GameState, PresetDifficulty, WinResult } from './minesweeper.types';
+import type { Difficulty, DifficultyConfig, GameState, PresetDifficulty, RankedMove, WinResult } from './minesweeper.types';
 
 /** hood-exe-minesweeper-brief.md §6: settings and best times live in this browser only; games aren't resumed. */
 const KEYS = { settings: 'minesweeper:settings', stats: 'minesweeper:stats' } as const;
@@ -68,7 +68,36 @@ function reducer(s: GameState, a: Action): GameState {
 /** A new best time, for the "fastest time" message. */
 export type NewBestTime = { difficulty: PresetDifficulty; time: number; at: number };
 
-export function useMinesweeper({ onWin }: { onWin?: (result: WinResult) => void } = {}) {
+/**
+ * How the window plays ranked games (the daily leaderboard), so the hook stays unaware of the API: `start` gets the
+ * server's seed at the first click, `finish` sends the moves of a win for the server to replay and time.
+ */
+export type RankedHost<R> = {
+  start: (level: PresetDifficulty) => Promise<{ id: string; seed: number }>;
+  finish: (id: string, game: { marks: boolean; moves: RankedMove[] }) => Promise<R>;
+};
+
+/** Where the current game stands with the leaderboard. */
+export type RankedState<R> =
+  | { phase: 'idle' }
+  | { phase: 'starting' }
+  | { phase: 'playing' }
+  | { phase: 'submitting' }
+  | { phase: 'done'; result: R }
+  | { phase: 'unranked' | 'error'; message: string };
+
+const errorText = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong.');
+
+/** What a move records for a ranked replay; null for actions that aren't moves. */
+function recordOf(a: Action): RankedMove | null {
+  if (a.type === 'reveal') return ['r', a.row, a.col];
+  if (a.type === 'flag') return ['f', a.row, a.col];
+  if (a.type === 'chord') return ['c', a.row, a.col];
+  if (a.type === 'marks') return ['m', a.enabled ? 1 : 0];
+  return null;
+}
+
+export function useMinesweeper<R = unknown>({ onWin, ranked: rankedHost = null }: { onWin?: (result: WinResult) => void; ranked?: RankedHost<R> | null } = {}) {
   // Minesweeper only renders in the browser (the desktop opens windows after it mounts), so storage is readable here.
   const [settings, setSettingsState] = useState<Settings>(loadSettings);
   const [stats, setStats] = useState<Stats>(() => load(KEYS.stats, NO_STATS));
@@ -81,6 +110,18 @@ export function useMinesweeper({ onWin }: { onWin?: (result: WinResult) => void 
   useEffect(() => {
     onWinRef.current = onWin;
   }, [onWin]);
+
+  // Ranked play: every move since the new game (with the Marks setting it began with) is kept, so a ranked win can
+  // be replayed by the server. The run exists once the server has dealt the board, at the first click.
+  const hostRef = useRef(rankedHost);
+  useEffect(() => {
+    hostRef.current = rankedHost;
+  }, [rankedHost]);
+  const log = useRef<{ marks: boolean; moves: RankedMove[] }>({ marks: state.marksEnabled, moves: [] });
+  const run = useRef<string | null>(null);
+  const gameNo = useRef(0);
+  const starting = useRef(false);
+  const [ranked, setRanked] = useState<RankedState<R>>({ phase: 'idle' });
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettingsState((cur) => {
@@ -107,6 +148,15 @@ export function useMinesweeper({ onWin }: { onWin?: (result: WinResult) => void 
       if (next === prev) return;
       current.current = next;
       setState(next);
+      if (a.type === 'new') {
+        gameNo.current++;
+        log.current = { marks: a.marksEnabled, moves: [] };
+        run.current = null;
+        setRanked({ phase: 'idle' });
+      } else {
+        const rec = recordOf(a);
+        if (rec) log.current.moves.push(rec);
+      }
       if (next.status === prev.status) return;
       const { difficulty } = settings;
       const endedAt = next.endedAt ?? Date.now();
@@ -122,17 +172,68 @@ export function useMinesweeper({ onWin }: { onWin?: (result: WinResult) => void 
         if (isBest) setRecord({ difficulty, time, at: endedAt });
         track('minesweeper_won', { difficulty, time, bestTime: isBest });
         onWinRef.current?.({ difficulty, time, movesMade: next.moves, timestamp: endedAt });
+        const id = run.current;
+        const host = hostRef.current;
+        if (id && host) {
+          run.current = null;
+          setRanked({ phase: 'submitting' });
+          const no = gameNo.current;
+          host.finish(id, { marks: log.current.marks, moves: log.current.moves }).then(
+            (result) => gameNo.current === no && setRanked({ phase: 'done', result }),
+            (e) => gameNo.current === no && setRanked({ phase: 'error', message: errorText(e) }),
+          );
+        }
       }
       if (next.status === 'lost') {
+        if (run.current) setRanked({ phase: 'idle' });
+        run.current = null;
         track('minesweeper_lost', { difficulty, timeElapsed: elapsedSeconds(next, endedAt), cellsRevealed: countRevealed(next.board) });
       }
     },
     [settings, stats, updateStats],
   );
 
-  const doReveal = useCallback((row: number, col: number) => apply({ type: 'reveal', row, col, now: Date.now(), seed: newSeed() }), [apply]);
-  const doFlag = useCallback((row: number, col: number) => apply({ type: 'flag', row, col }), [apply]);
-  const doChord = useCallback((row: number, col: number) => apply({ type: 'chord', row, col, now: Date.now() }), [apply]);
+  /**
+   * Left-click. On a ranked level the first click waits for the server to deal the board (its clock starts there);
+   * if that fails, the game goes on unranked. Input is held while it waits.
+   */
+  const doReveal = useCallback(
+    (row: number, col: number) => {
+      if (starting.current) return;
+      const host = hostRef.current;
+      const level = settings.difficulty;
+      const s = current.current;
+      const cell = s.board[row]?.[col];
+      if (!host || level === 'custom' || !s.firstClick || s.status !== 'idle' || !cell || cell.state === 'flagged') {
+        apply({ type: 'reveal', row, col, now: Date.now(), seed: newSeed() });
+        return;
+      }
+      starting.current = true;
+      setRanked({ phase: 'starting' });
+      const no = gameNo.current;
+      host
+        .start(level)
+        .then(
+          (r) => {
+            if (gameNo.current !== no) return;
+            run.current = r.id;
+            setRanked({ phase: 'playing' });
+            apply({ type: 'reveal', row, col, now: Date.now(), seed: r.seed });
+          },
+          (e) => {
+            if (gameNo.current !== no) return;
+            setRanked({ phase: 'unranked', message: errorText(e) });
+            apply({ type: 'reveal', row, col, now: Date.now(), seed: newSeed() });
+          },
+        )
+        .finally(() => {
+          starting.current = false;
+        });
+    },
+    [apply, settings.difficulty],
+  );
+  const doFlag = useCallback((row: number, col: number) => void (!starting.current && apply({ type: 'flag', row, col })), [apply]);
+  const doChord = useCallback((row: number, col: number) => void (!starting.current && apply({ type: 'chord', row, col, now: Date.now() })), [apply]);
 
   const reset = useCallback(() => {
     setRecord(null);
@@ -168,6 +269,7 @@ export function useMinesweeper({ onWin }: { onWin?: (result: WinResult) => void 
     stats,
     record,
     dismissRecord: () => setRecord(null),
+    ranked,
     reveal: doReveal,
     flag: doFlag,
     chord: doChord,

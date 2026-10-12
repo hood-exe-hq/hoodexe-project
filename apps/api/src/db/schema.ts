@@ -135,3 +135,25 @@ export const reactions = pgTable(
   },
   (t) => [primaryKey({ columns: [t.calloutId, t.wallet, t.kind] })],
 );
+
+/**
+ * Ranked game runs for the daily leaderboard. The server deals the seed and starts the clock (POST
+ * /games/minesweeper/start); a win is checked by replaying its moves, and its time is the server's own count from
+ * start to finish, so neither the board nor the time comes from the browser. time_ms stays null until a verified win.
+ */
+export const gameRuns = pgTable(
+  'game_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    wallet: text('wallet').notNull(),
+    game: text('game', { enum: ['minesweeper'] }).notNull(),
+    level: text('level', { enum: ['beginner', 'intermediate', 'expert'] }).notNull(),
+    seed: integer('seed').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    timeMs: integer('time_ms'),
+    /** Held $HEXE when the win was posted: the leaderboard's badge. */
+    holder: boolean('holder').notNull().default(false),
+  },
+  (t) => [index('game_runs_board_idx').on(t.game, t.level, t.finishedAt), index('game_runs_wallet_idx').on(t.wallet, t.startedAt)],
+);
