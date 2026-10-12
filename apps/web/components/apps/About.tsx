@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { ROBINHOOD_CHAIN_ID } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
+import { contractRow } from '@/components/xp/ContractAddress';
 import { GroupBox } from '@/components/xp/Controls';
 import { HoodLogo } from '@/components/xp/Icons';
 import { Wordmark } from '@/components/xp/Wordmark';
@@ -24,6 +25,8 @@ const ROWS: [string, ReactNode][] = [
     </a>,
   ],
 ];
+const CONTRACT = contractRow();
+if (CONTRACT) ROWS.push(CONTRACT);
 
 export function About({ win }: { win: WindowState }) {
   return (

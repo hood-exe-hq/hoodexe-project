@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/xp/Button';
+import { OfficialContract } from '@/components/xp/ContractAddress';
 import { HoodLogo, InfoIcon } from '@/components/xp/Icons';
 import { Wordmark } from '@/components/xp/Wordmark';
 import { openApp } from '@/lib/openApp';
@@ -32,6 +33,8 @@ export function Welcome() {
           About
         </Button>
       </div>
+
+      <OfficialContract />
 
       <div className={styles.tip}>
         <InfoIcon size={16} />

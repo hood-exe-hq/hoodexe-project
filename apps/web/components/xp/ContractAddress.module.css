@@ -1,0 +1,53 @@
+/* hood.exe's official contract address: the Welcome box, the tray button and About's row. */
+.box {
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border: 1px solid #7f9db9;
+  background: #f4f8fe;
+}
+.label { margin-bottom: 5px; color: #0a246a; font-size: 11px; }
+.row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.address {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 3px 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid #7f9db9;
+  user-select: all;
+}
+.link { font-size: 11px; }
+.mono { font-family: var(--font-mono); }
+
+.trayWrap { position: relative; display: flex; }
+.trayBtn {
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.5px;
+}
+.trayBtn:hover { background: rgba(255, 255, 255, 0.28); }
+/* An XP tooltip above the tray */
+.bubble {
+  position: absolute;
+  right: -4px;
+  bottom: calc(100% + 10px);
+  padding: 3px 6px;
+  border: 1px solid #000;
+  background: #ffffe1;
+  color: #000;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
