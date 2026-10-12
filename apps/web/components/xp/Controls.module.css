@@ -41,7 +41,9 @@
   overflow: auto;
   border: 1px solid #919b9c;
   background: #fcfcfe;
-  padding: 8px;
+  /* Sticky table headers inside offset by this, so they stick to the edge rather than below the padding. */
+  --panel-pad: 8px;
+  padding: var(--panel-pad);
   box-shadow: 1px 1px 0 #d0d0bf;
 }
 
