@@ -199,6 +199,35 @@ export function envioClient(graphqlUrl: string, pageSize = 1_000, limits: Partia
     },
 
     /**
+     * Buys and sells of at least each tier's size on that tier's tokens, oldest first (the desktop's trade
+     * balloons). `afterBlock` resumes the worker's cursor; `since` (unix seconds) takes the newest `limit` instead.
+     */
+    async notableTrades(
+      tiers: { tokens: string[]; minQuote: bigint }[],
+      from: { afterBlock: number } | { since: number },
+      limit = 200,
+      which: Lane = 'background',
+    ): Promise<(EnvioTrade & { token: string; blockNumber: number })[]> {
+      const live = tiers.filter((t) => t.tokens.length);
+      if (!live.length) return [];
+      const newest = 'since' in from;
+      const params = live.map((_, i) => `$t${i}: [String!]!, $m${i}: numeric!`).join(', ');
+      const any = live.map((_, i) => `{ token: { _in: $t${i} }, quoteAmount: { _gte: $m${i} } }`).join(', ');
+      const order = newest ? 'desc' : 'asc';
+      const data = await query(
+        `query NotableTrades(${params}, $from: Int!, $limit: Int!) {
+          Trade(where: { _or: [${any}], ${newest ? 'timestamp: { _gte: $from }' : 'blockNumber: { _gt: $from }'} }, order_by: [{ blockNumber: ${order} }, { id: ${order} }], limit: $limit) {
+            id token trader isBuy quoteAmount tokenAmount price timestamp txHash blockNumber
+          }
+        }`,
+        { ...Object.fromEntries(live.flatMap((t, i) => [[`t${i}`, t.tokens], [`m${i}`, t.minQuote.toString()]])), from: newest ? from.since : from.afterBlock, limit },
+        z.object({ Trade: z.array(tradeRow.extend({ token: z.string(), blockNumber: z.number().int() })) }),
+        which,
+      );
+      return newest ? data.Trade.reverse() : data.Trade;
+    },
+
+    /**
      * The wallet's open positions (indexer `Position`: average-cost quantity and cost per coin, from its curve
      * trades, including dev buys the router made for it). Portfolio's cost basis.
      */

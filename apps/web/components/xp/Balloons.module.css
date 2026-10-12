@@ -63,3 +63,8 @@
   .balloon { width: auto; }
   .balloon:last-child::after { display: none; }
 }
+
+/* Trade balloons: one trade, or a few merged */
+.lines { margin: 0; padding: 0; list-style: none; line-height: 1.4; }
+.lines li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ago { color: #6a6a6a; }

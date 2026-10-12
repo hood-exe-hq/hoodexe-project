@@ -8,3 +8,4 @@ export * from './launchTx';
 export * from './pairs';
 export * from './latex';
 export * from './format';
+export * from './hexe';

@@ -1,9 +1,12 @@
 'use client';
 
 import { create } from 'zustand';
-import { fetchCallouts, liveMessageSchema, liveUrl, type Callout, type Reactions } from './api';
+import { fetchCallouts, fetchRecentActivity, liveMessageSchema, liveUrl, type Activity, type Callout, type Reactions } from './api';
 
-export type LiveEvent = { type: 'callout'; callout: Callout } | { type: 'reactions'; id: string; reactions: Reactions };
+export type LiveEvent =
+  | { type: 'callout'; callout: Callout }
+  | { type: 'reactions'; id: string; reactions: Reactions }
+  | { type: 'activity'; activity: Activity };
 type Status = 'idle' | 'connecting' | 'live' | 'polling';
 
 /** Connection state for the Callouts header ("🟢 LIVE" vs reconnecting). */
@@ -11,7 +14,7 @@ export const useLiveStatus = create<{ status: Status }>(() => ({ status: 'idle' 
 
 const listeners = new Set<(e: LiveEvent) => void>();
 
-/** Subscribes to new callouts and reaction updates. Events can repeat (socket + poll); dedupe by id. */
+/** Subscribes to new callouts, reaction updates and notable trades. Events can repeat (socket + poll); dedupe by id. */
 export function onLive(listener: (e: LiveEvent) => void): () => void {
   listeners.add(listener);
   return () => void listeners.delete(listener);
@@ -34,7 +37,7 @@ let stopCurrent: (() => void) | null = null;
 
 /**
  * Keeps one live link per page (docs/BRIEF.md §9): a WebSocket with reconnect backoff 1 s → 30 s; while
- * it's down, polls GET /callouts?after=<cursor> every 8 s. Reference-counted: the last caller to stop
+ * it's down, polls GET /callouts?after=<cursor> and GET /activity/recent every 8 s. Reference-counted: the last caller to stop
  * closes it.
  */
 export function startLive(): () => void {
@@ -72,6 +75,10 @@ function connect(): () => void {
     .catch(() => {});
 
   async function poll() {
+    // Recent trades come as a window, not after a cursor: listeners drop the ones they've seen.
+    void fetchRecentActivity()
+      .then((items) => items.forEach((activity) => emit({ type: 'activity', activity })))
+      .catch(() => {});
     if (!newest) return;
     try {
       const page = await fetchCallouts({ after: cursorOf({ createdAt: new Date(newest.at).toISOString(), id: newest.id }), limit: 50 });
@@ -126,7 +133,7 @@ function connect(): () => void {
       else if (m.type === 'callout') {
         remember(m.callout);
         emit(m);
-      } else if (m.type === 'reactions') emit(m);
+      } else if (m.type === 'reactions' || m.type === 'activity') emit(m);
     };
     ws.onclose = () => {
       clearTimeout(watchdog);

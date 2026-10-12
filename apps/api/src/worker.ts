@@ -3,11 +3,13 @@ import { connectPostgres } from './db';
 import { loadEnv } from './env';
 import { envioClient } from './services/envio';
 import { redisPubSub } from './services/pubsub';
+import { activityTick } from './activity';
 import { systemCalloutsTick } from './systemCallouts';
 import { pruneIndexer } from './services/indexerPrune';
 
 /**
- * The always-on worker (docs/BRIEF.md §9): every 10 s, system callouts for hood.exe coins. Runs from the
+ * The always-on worker (docs/BRIEF.md §9): every 10 s, system callouts for hood.exe coins and the live trade
+ * balloons ($HEXE and hood coins). Runs from the
  * API's image as a second Railway service (`pnpm --filter @hood/api worker`). Needs Redis: its callouts
  * reach the API's WebSockets through pub/sub.
  */
@@ -18,7 +20,7 @@ const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2, family: 0 });
 const pubsub = redisPubSub(redis);
 // Its share of Envio's per-minute query limit; the API takes 60 (src/index.ts).
 const envio = env.ENVIO_GRAPHQL_URL ? envioClient(env.ENVIO_GRAPHQL_URL, 1_000, { background: 20 }) : undefined;
-if (!envio) console.warn('No ENVIO_GRAPHQL_URL: big-buy callouts are off; launches and graduations still post.');
+if (!envio) console.warn('No ENVIO_GRAPHQL_URL: big-buy callouts and trade balloons are off; launches and graduations still post.');
 
 const log = (msg: string) => console.log(`[worker] ${new Date().toISOString()} ${msg}`);
 let running = false;
@@ -29,6 +31,12 @@ async function tick() {
     await systemCalloutsTick({ db, pubsub, envio, now: () => new Date(), log });
   } catch (e) {
     log(`tick failed: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
+  }
+  // Separate, so a failure in one doesn't hold up the other.
+  try {
+    if (envio) await activityTick({ db, pubsub, envio, now: () => new Date(), log });
+  } catch (e) {
+    log(`activity tick failed: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
   } finally {
     running = false;
   }

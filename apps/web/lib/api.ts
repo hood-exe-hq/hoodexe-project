@@ -248,11 +248,30 @@ export function setNickname(nickname: string): Promise<{ wallet: string; nicknam
 }
 
 /** Messages on /ws (docs/BRIEF.md §9). */
+/** A notable $HEXE or hood-coin trade, for the desktop's trade balloons (apps/api/src/activity.ts). */
+export const activitySchema = z.object({
+  id: z.string(),
+  side: z.enum(['buy', 'sell']),
+  token: z.string(),
+  ticker: z.string(),
+  trader: z.string(),
+  /** ETH, as a decimal string. */
+  eth: z.string(),
+  /** Unix seconds. */
+  time: z.number(),
+  txHash: z.string(),
+});
+export type Activity = z.infer<typeof activitySchema>;
+
+/** GET /activity/recent: notable trades of the last 15 minutes, oldest first. */
+export const fetchRecentActivity = () => request('/activity/recent', { method: 'GET' }, z.object({ items: z.array(activitySchema) })).then((r) => r.items);
+
 export const liveMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('hello'), pingMs: z.number() }),
   z.object({ type: z.literal('ping'), at: z.number() }),
   z.object({ type: z.literal('callout'), callout: calloutSchema }),
   z.object({ type: z.literal('reactions'), id: z.string(), reactions: reactionsSchema }),
+  z.object({ type: z.literal('activity'), activity: activitySchema }),
 ]);
 export type LiveMessage = z.infer<typeof liveMessageSchema>;
 

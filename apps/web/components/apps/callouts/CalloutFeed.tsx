@@ -50,6 +50,7 @@ export function CalloutFeed({ token, ticker, onLiveCounts }: { token?: string; t
   useEffect(() => {
     const stop = startLive();
     const off = onLive((e) => {
+      if (e.type === 'activity') return;
       queryClient.setQueryData<Pages>(key, (data) => {
         if (!data) return data;
         if (e.type === 'reactions') {

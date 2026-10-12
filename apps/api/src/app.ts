@@ -17,6 +17,7 @@ import type { Pinner } from './services/pinner';
 import type { PubSub } from './services/pubsub';
 import type { Scorer } from './services/scorer';
 import type { LaunchSource } from './services/tokenIndex';
+import { activityRoutes } from './routes/activity';
 import { authRoutes } from './routes/auth';
 import { calloutRoutes } from './routes/callouts';
 import { ipfsRoutes } from './routes/ipfs';
@@ -165,6 +166,7 @@ export async function buildApp(deps: Deps) {
   await app.register(tokenRoutes);
   await app.register(calloutRoutes);
   await app.register(liveRoutes);
+  await app.register(activityRoutes);
   await app.register(portfolioRoutes);
   await app.register(rpcRoutes);
   return app;

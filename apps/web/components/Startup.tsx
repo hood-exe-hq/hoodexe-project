@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOOT_MS, BootScreen, WELCOME_MS, WelcomeScreen } from './xp/Boot';
 import { DesktopSkeleton } from './xp/DesktopSkeleton';
+import { useStartup } from '@/store/startup';
 
 // Wallet SDKs (RainbowKit → wagmi connectors → Coinbase/Base SDKs) are browser-only and pull
 // server-incompatible optional deps into SSR, so the interactive desktop renders on the client.
@@ -73,6 +74,10 @@ export function Startup() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const t = window.setTimeout(() => setPhase('done'), reduced ? 300 : WELCOME_MS);
     return () => window.clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === 'done') useStartup.setState({ done: true });
   }, [phase]);
 
   const onReady = useCallback(() => {
