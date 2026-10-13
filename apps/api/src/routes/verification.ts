@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import multipart from '@fastify/multipart';
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, sql } from 'drizzle-orm';
-import { encodeFunctionData, getAddress, isAddress, isHash, type Address, type Hex } from 'viem';
+import { encodeFunctionData, formatEther, getAddress, isAddress, isHash, type Address, type Hex } from 'viem';
 import { z } from 'zod';
-import { DEFAULT_REWARD_ETH, MAX_PROOF_BYTES, TIERS, screenProof, verificationPoolAbi } from '@hood/shared';
+import { DEFAULT_REWARD_ETH, MAX_PROOF_BYTES, TIERS, screenProof, verificationPoolAbi, type Tier } from '@hood/shared';
 import { HttpError } from '../app';
 import { schema, type Db } from '../db';
 import { allow } from '../kv';
@@ -125,15 +125,33 @@ export async function verificationRoutes(app: FastifyInstance) {
     };
   };
 
+  /**
+   * The pool's fee and rewards, read from the contract (the owner can change them) and cached for a minute. Falls
+   * back to the env fee and the default rewards when the chain can't be read.
+   */
+  let terms: { at: number; feeWei: bigint; rewardsEth: Record<Tier, string> } | null = null;
+  const poolTerms = async () => {
+    if (terms && now().getTime() - terms.at < 60_000) return terms;
+    try {
+      if (!pool) throw new Error('no pool');
+      const [feeWei, ...rewards] = await Promise.all([pool.submissionFee(), ...TIERS.map((t) => pool.rewardWei(t))]);
+      terms = { at: now().getTime(), feeWei, rewardsEth: Object.fromEntries(TIERS.map((t, i) => [t, formatEther(rewards[i])])) as Record<Tier, string> };
+      return terms;
+    } catch {
+      return terms ?? { at: 0, feeWei: BigInt(env.VERIFICATION_SUBMISSION_FEE_WEI), rewardsEth: DEFAULT_REWARD_ETH };
+    }
+  };
+
   app.get('/verification/config', async (req) => {
     const wallet = await app.sessionWallet(req);
+    const { feeWei, rewardsEth } = await poolTerms();
     return {
       enabled: await enabled(),
       poolAddress: pool?.address ?? null,
-      submissionFeeWei: env.VERIFICATION_SUBMISSION_FEE_WEI,
+      submissionFeeWei: feeWei.toString(),
       maxPerWeek: env.VERIFICATION_MAX_PER_USER_PER_WEEK,
       maxProofBytes: MAX_PROOF_BYTES,
-      rewardsEth: DEFAULT_REWARD_ETH,
+      rewardsEth,
       admin: isAdminWallet(env.ADMIN_WALLETS, wallet),
     };
   });
@@ -185,7 +203,7 @@ export async function verificationRoutes(app: FastifyInstance) {
       .values({ proofHash, cid, content: source, bytes: file.length, tokenAddress: coin.token, uploader: wallet })
       .onConflictDoNothing();
 
-    const fee = BigInt(env.VERIFICATION_SUBMISSION_FEE_WEI);
+    const fee = (await poolTerms()).feeWei;
     const token = getAddress(coin.token);
     return {
       ipfsCid: cid,

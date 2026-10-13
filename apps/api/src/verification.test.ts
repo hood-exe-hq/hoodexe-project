@@ -32,6 +32,7 @@ function fakeChain() {
     head: async () => block,
     status: async (id) => status.get(id) ?? 'None',
     rewardWei: async (tier: Tier) => ({ TRIVIAL: 10n ** 16n, SIMPLE: 5n * 10n ** 16n, MEDIUM: 25n * 10n ** 16n, HARD: 10n ** 18n, OPEN: 10n ** 19n })[tier],
+    submissionFee: async () => 10n ** 16n,
     balances: async () => ({ balance: 3n * 10n ** 18n, available: 2n * 10n ** 18n }),
   };
   const writer: PoolWriter = {

@@ -40,6 +40,7 @@ export interface PoolReader {
   head(): Promise<bigint>;
   status(id: Hex): Promise<PoolStatus>;
   rewardWei(tier: Tier): Promise<bigint>;
+  submissionFee(): Promise<bigint>;
   balances(): Promise<{ balance: bigint; available: bigint }>;
 }
 
@@ -110,6 +111,7 @@ export function rpcPool(rpcUrl: string, address: Address): PoolReader {
       return POOL_STATUS[s.status] ?? 'None';
     },
     rewardWei: (tier) => client.readContract({ address, abi: verificationPoolAbi, functionName: 'rewardAmount', args: [tierIndex(tier)] }),
+    submissionFee: () => client.readContract({ address, abi: verificationPoolAbi, functionName: 'submissionFee' }),
     async balances() {
       const [balance, available] = await Promise.all([
         client.getBalance({ address }),
