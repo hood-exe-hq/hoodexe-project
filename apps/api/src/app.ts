@@ -14,6 +14,7 @@ import type { ChainReader } from './services/chain';
 import type { EnvioClient } from './services/envio';
 import type { Moderator } from './services/moderation';
 import type { Pinner } from './services/pinner';
+import type { PoolReader } from './services/poolChain';
 import type { PubSub } from './services/pubsub';
 import type { Scorer } from './services/scorer';
 import type { LaunchSource } from './services/tokenIndex';
@@ -28,6 +29,7 @@ import { portfolioRoutes } from './routes/portfolio';
 import { rpcRoutes } from './routes/rpc';
 import { scoreRoutes } from './routes/score';
 import { tokenRoutes } from './routes/tokens';
+import { verificationRoutes } from './routes/verification';
 
 export type Deps = {
   env: Env;
@@ -44,6 +46,8 @@ export type Deps = {
   moderator: Moderator;
   /** Live callouts and reactions, from this process and the worker, to the WebSockets. */
   pubsub: PubSub;
+  /** The VerificationPool, when VERIFICATION_POOL_ADDRESS is set: formal verification submissions. */
+  pool?: PoolReader;
   now?: () => Date;
 };
 
@@ -169,6 +173,7 @@ export async function buildApp(deps: Deps) {
   await app.register(liveRoutes);
   await app.register(activityRoutes);
   await app.register(gameRoutes);
+  await app.register(verificationRoutes);
   await app.register(portfolioRoutes);
   await app.register(rpcRoutes);
   return app;

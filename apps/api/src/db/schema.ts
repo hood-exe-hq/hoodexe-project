@@ -75,6 +75,9 @@ export const tokens = pgTable(
     /** Gross quote traded over the last ~24 h (hourly candles), when the indexer is available. */
     volume24h: numeric('volume_24h', { precision: 78, scale: 0 }),
     trades24h: integer('trades_24h'),
+    /** Formally verified (VerificationPool → RigorRegistry): Σ 100 and the FORMAL ✓ badge. */
+    formal: boolean('formal').notNull().default(false),
+    formalAt: timestamp('formal_at', { withTimezone: true }),
   },
   (t) => [index('tokens_block_idx').on(t.blockNumber), index('tokens_hood_idx').on(t.hood, t.blockNumber)],
 );
@@ -157,4 +160,64 @@ export const gameRuns = pgTable(
     holder: boolean('holder').notNull().default(false),
   },
   (t) => [index('game_runs_board_idx').on(t.game, t.level, t.finishedAt), index('game_runs_wallet_idx').on(t.wallet, t.startedAt)],
+);
+
+/**
+ * Proof files prepared for submission (POST /verification/prepare): pinned to IPFS and kept here so the verifier
+ * worker needn't fetch them back. Keyed by sha256, the proofHash the VerificationPool records.
+ */
+export const verificationProofs = pgTable('verification_proofs', {
+  proofHash: text('proof_hash').primaryKey(),
+  cid: text('cid').notNull(),
+  content: text('content').notNull(),
+  bytes: integer('bytes').notNull(),
+  tokenAddress: text('token_address').notNull(),
+  uploader: text('uploader').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Formal verification submissions (brief §5.2), one per on-chain VerificationPool submission (id = its bytes32).
+ * Also the work queue: the verifier worker claims 'queued' rows and, after the admin's review, 'approved' ones.
+ */
+export const verificationSubmissions = pgTable(
+  'verification_submissions',
+  {
+    id: text('id').primaryKey(),
+    tokenAddress: text('token_address').notNull(),
+    submitter: text('submitter_address').notNull(),
+    proofHash: text('proof_hash').notNull(),
+    ipfsCid: text('ipfs_cid').notNull(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
+    status: text('status', { enum: ['queued', 'compiling', 'passed', 'approved', 'verified', 'failed', 'rejected'] }).notNull().default('queued'),
+    /** The heuristic's guess (services/tierEstimator.ts), shown to the admin; never paid on its own. */
+    suggestedTier: text('suggested_tier', { enum: ['TRIVIAL', 'SIMPLE', 'MEDIUM', 'HARD', 'OPEN'] }),
+    /** The tier the admin approved; the one signed and paid. */
+    tier: text('tier', { enum: ['TRIVIAL', 'SIMPLE', 'MEDIUM', 'HARD', 'OPEN'] }),
+    rewardWei: numeric('reward_amount', { precision: 78, scale: 0 }),
+    /** The checker's report: each theorem's statement and axioms. */
+    theorems: jsonb('theorems').$type<{ name: string; statement: string; axioms: string[]; ok: boolean }[]>(),
+    /** Why it failed, for the submitter: the first lines of the compiler's errors or the checker's reason. */
+    errorSummary: text('error_summary'),
+    compileMs: integer('compile_ms'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    checkedAt: timestamp('checked_at', { withTimezone: true }),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    txHashSubmit: text('tx_hash_submit'),
+    txHashResult: text('tx_hash_result'),
+    adminTierOverride: boolean('admin_tier_override').notNull().default(false),
+    reviewedBy: text('reviewed_by'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewNote: text('review_note'),
+    /** The last on-chain posting error (e.g. the pool is short of funds); the worker retries. */
+    lastError: text('last_error'),
+    attempts: integer('attempts').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('idx_verification_token').on(t.tokenAddress),
+    index('idx_verification_submitter').on(t.submitter),
+    index('idx_verification_status').on(t.status),
+    index('idx_verification_submitted').on(t.submittedAt),
+  ],
 );

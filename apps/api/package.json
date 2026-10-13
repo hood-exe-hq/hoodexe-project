@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "worker": "tsx src/worker.ts",
-    "dev:worker": "tsx watch --env-file-if-exists=.env src/worker.ts"
+    "dev:worker": "tsx watch --env-file-if-exists=.env src/worker.ts",
+    "verifier": "tsx src/verifierWorker.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.8",

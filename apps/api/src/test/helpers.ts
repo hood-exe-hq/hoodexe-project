@@ -1,4 +1,5 @@
 import { verifyMessage, type Hash } from 'viem';
+import type { PoolReader } from '../services/poolChain';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage } from 'viem/siwe';
 import type { RigorBreakdown } from '@hood/shared';
@@ -27,7 +28,7 @@ export const BREAKDOWN: RigorBreakdown = {
   reasoning: "Euler's identity, a classical result.",
 };
 
-export async function setup(opts: { scorer?: Scorer; launches?: Map<string, LaunchOnChain | 'pending' | null>; envio?: EnvioClient; moderator?: Moderator; official?: string; env?: Record<string, string> } = {}) {
+export async function setup(opts: { scorer?: Scorer; launches?: Map<string, LaunchOnChain | 'pending' | null>; envio?: EnvioClient; moderator?: Moderator; official?: string; env?: Record<string, string>; pool?: PoolReader } = {}) {
   const { db, close } = await connectMemory();
   let clock = new Date('2026-10-09T12:00:00Z').getTime();
   const scorerCalls: string[] = [];
@@ -71,6 +72,7 @@ export async function setup(opts: { scorer?: Scorer; launches?: Map<string, Laun
     },
     moderator: opts.moderator ?? moderator,
     pubsub,
+    pool: opts.pool,
     now: () => new Date(clock),
   });
   return {
