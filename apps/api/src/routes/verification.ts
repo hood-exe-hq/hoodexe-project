@@ -267,6 +267,8 @@ export async function verificationRoutes(app: FastifyInstance) {
     const balances = pool ? await pool.balances().catch(() => null) : null;
     return {
       pool: { address: pool?.address ?? null, balanceWei: balances?.balance.toString() ?? null, availableWei: balances?.available.toString() ?? null },
+      /** The fee splitter, whose pool share the owner wallet sets from the admin page. */
+      feeSplitterAddress: env.FEE_SPLITTER_ADDRESS ?? null,
       paused: await submissionsPaused(db),
       enabledByEnv: env.VERIFICATION_SUBMISSIONS_ENABLED,
       counts,

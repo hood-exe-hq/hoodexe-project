@@ -406,6 +406,7 @@ export const fetchTokenProof = (address: string) => request(`/verification/token
 
 const adminOverviewSchema = z.object({
   pool: z.object({ address: z.string().nullable(), balanceWei: z.string().nullable(), availableWei: z.string().nullable() }),
+  feeSplitterAddress: z.string().nullable(),
   paused: z.boolean(),
   enabledByEnv: z.boolean(),
   counts: z.record(z.string(), z.number()),

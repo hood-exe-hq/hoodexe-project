@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatEther, type Address } from 'viem';
+import { useReadContract } from 'wagmi';
 import { getAccount, switchChain, waitForTransactionReceipt, writeContract } from 'wagmi/actions';
-import { TIERS, type Tier } from '@hood/shared';
+import { TIERS, feeSplitterAbi, type Tier } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
 import { Latex } from '@/components/xp/Latex';
 import { fetchVerificationAdmin, fetchVerificationConfig, reviewVerification, setVerificationPaused, type VerificationAdmin as Overview } from '@/lib/api';
@@ -23,6 +24,45 @@ const poolOwnerAbi = [
   { type: 'function', name: 'pausePayouts', inputs: [], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'resumePayouts', inputs: [], outputs: [], stateMutability: 'nonpayable' },
 ] as const;
+
+/** Brief §11 "Modify split %": the FeeSplitter's pool share, set from the owner wallet (the contract checks ownership
+ * and caps it at 50%). */
+function FeeSplitControl({ address }: { address: Address }) {
+  const bps = useReadContract({ address, abi: feeSplitterAbi, functionName: 'poolBps', chainId: chain.id });
+  const [percent, setPercent] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const current = bps.data != null ? Number(bps.data) / 100 : null;
+  const set = async () => {
+    const value = Math.round(Number(percent) * 100);
+    if (!Number.isFinite(value) || value < 0 || value > 5_000) return setError('Enter a share from 0 to 50%.');
+    setBusy(true);
+    setError(null);
+    try {
+      if (getAccount(wagmiConfig).chainId !== chain.id) await switchChain(wagmiConfig, { chainId: chain.id });
+      const hash = await writeContract(wagmiConfig, { address, abi: feeSplitterAbi, functionName: 'setPoolBps', args: [value] });
+      await waitForTransactionReceipt(wagmiConfig, { hash });
+      setPercent('');
+      await bps.refetch();
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={styles.actions}>
+      <span>
+        Fee split to the pool: <b>{current == null ? '—' : `${current}%`}</b> (operator {current == null ? '—' : `${100 - current}%`}, max 50%)
+      </span>
+      <input type="number" min={0} max={50} step={0.5} placeholder="%" value={percent} onChange={(e) => setPercent(e.target.value)} style={{ width: 64 }} />
+      <Button disabled={busy || percent === ''} onClick={() => void set()}>
+        Set split (owner wallet)
+      </Button>
+      {error && <span className={styles.error}>{error}</span>}
+    </div>
+  );
+}
 
 function ReviewCard({ item, onDone }: { item: Overview['review'][number]; onDone: () => void }) {
   const [tier, setTier] = useState<Tier>(item.suggestedTier ?? 'TRIVIAL');
@@ -175,6 +215,7 @@ export function VerificationAdmin() {
             Resume payouts
           </Button>
         </div>
+        {o.feeSplitterAddress && <FeeSplitControl address={o.feeSplitterAddress as Address} />}
         {busy && <p className={styles.note}>Working…</p>}
         {error && <p className={styles.error}>{error}</p>}
         <h3 style={{ margin: '4px 0 0' }}>Awaiting review ({o.review.length})</h3>
