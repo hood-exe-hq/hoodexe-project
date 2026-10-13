@@ -81,7 +81,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
         const state = states.get(token);
         const m = row ?? meta.get(token);
         const parsed = !row && m ? parseDescription(m.description) : null;
-        const rigorScore = row ? row.rigorScore : parsed ? ((await storedScore(db, parsed.statement))?.score ?? null) : null;
+        const rigorScore = row?.formal ? 100 : row ? row.rigorScore : parsed ? ((await storedScore(db, parsed.statement))?.score ?? null) : null;
         const phase = state?.phase ?? row?.phase ?? 0;
 
         // Marked at the curve's spot price; graduated coins trade on Uniswap V4, which isn't priced here yet.
@@ -100,6 +100,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
           pair: { address: pairToken, symbol: pair?.symbol ?? '?', decimals },
           hood: row?.hood ?? parsed != null,
           rigorScore,
+          formal: row?.formal ?? false,
           phase,
           launchedByMe: launched.some((r) => r.tokenAddress.toLowerCase() === token.toLowerCase()),
           balance: units(balance, 18)!,

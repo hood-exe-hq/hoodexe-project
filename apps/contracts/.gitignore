@@ -1,0 +1,5 @@
+# Installed by `pnpm --filter @hood/contracts setup` (pinned versions); not vendored.
+lib/
+out/
+cache/
+broadcast/

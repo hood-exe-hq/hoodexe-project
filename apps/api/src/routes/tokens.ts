@@ -85,7 +85,10 @@ export function toItem(row: TokenRow) {
     statement: row.statement,
     /** First line of a non-hood.exe coin's description, for the card. Untrusted text. */
     blurb: row.hood ? null : (row.description.split('\n')[0] ?? '').slice(0, 140),
-    rigorScore: row.rigorScore,
+    /** Formally verified coins are Σ 100 (brief §1.3); others keep their AI estimate. */
+    rigorScore: row.formal ? 100 : row.rigorScore,
+    /** FORMAL ✓: a Lean proof passed the checker and the review, and the pool marked it on-chain. */
+    formal: row.formal,
     phase: row.phase,
     /** Pair asset per token. */
     price,

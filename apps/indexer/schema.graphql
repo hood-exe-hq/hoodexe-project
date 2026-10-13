@@ -87,3 +87,34 @@ type Graduation {
   poolAt: Int
   positionId: BigInt
 }
+
+# Formal verification (hood-exe-formal-verification-brief.md §6): the VerificationPool's submissions and the
+# RigorRegistry's FORMAL ✓ coins. The API keeps its own queue; these are the on-chain record it can be checked against.
+
+type VerificationSubmission {
+  "The pool's bytes32 submission id."
+  id: ID!
+  submitter: String! @index
+  token: String! @index
+  proofHash: String!
+  ipfsCid: String!
+  submittedAt: Int!
+  submitTx: String!
+  "pending, verified, failed or refunded."
+  status: String! @index
+  "0 TRIVIAL … 4 OPEN, once verified."
+  tier: Int
+  reward: BigInt
+  resultAt: Int
+  resultTx: String
+  failReason: String
+}
+
+type FormalToken {
+  "The coin's address."
+  id: ID!
+  verified: Boolean!
+  upgradedAt: Int!
+  revokedAt: Int
+  revokeReason: String
+}

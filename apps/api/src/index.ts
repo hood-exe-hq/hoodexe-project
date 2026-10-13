@@ -4,6 +4,7 @@ import { connectPostgres } from './db';
 import { loadEnv } from './env';
 import { memoryKv, redisKv } from './kv';
 import { rpcChainReader } from './services/chain';
+import { rpcPool } from './services/poolChain';
 import { devPinner, pinataPinner } from './services/pinner';
 import { allowAllModerator, deepseekModerator } from './services/moderation';
 import { memoryPubSub, redisPubSub } from './services/pubsub';
@@ -34,6 +35,8 @@ const app = await buildApp({
   moderator: deepseek ? deepseekModerator(deepseek) : allowAllModerator,
   pubsub,
   pinner: env.PINATA_JWT ? pinataPinner(env.PINATA_JWT) : devPinner(),
+  // Formal verification: the pool, when deployed. The API only reads it; the verifier worker (VPS) posts results.
+  pool: env.VERIFICATION_POOL_ADDRESS && env.RPC_URL_SERVER ? rpcPool(env.RPC_URL_SERVER, env.VERIFICATION_POOL_ADDRESS as `0x${string}`) : undefined,
 });
 
 const standIns = [!env.REDIS_URL && 'in-memory KV', !env.DEEPSEEK_API_KEY && 'offline scorer and allow-all callout moderation', !env.PINATA_JWT && 'dev pinner (nothing published)'].filter(Boolean);

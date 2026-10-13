@@ -6,6 +6,7 @@ import { Button } from '@/components/xp/Button';
 import { ConnectWallet } from '@/components/xp/ConnectWallet';
 import { Tabs } from '@/components/xp/Controls';
 import { PortfolioIcon } from '@/components/xp/Icons';
+import { VerificationBadge } from '@/components/verification/VerificationBadge';
 import { RigorBadge } from '@/components/xp/RigorBadge';
 import { ApiError, fetchPortfolio, type Holding, type TokenItem } from '@/lib/api';
 import { useIdentity } from '@/lib/identity';
@@ -165,6 +166,7 @@ function HoldingsTab({ holdings, wallet, tradeHistory }: { holdings: Holding[]; 
                     <TokenLogo logo={h.logo} symbol={h.symbol} size={18} />
                     <b>${h.symbol}</b>
                     {h.hood && <RigorBadge score={h.rigorScore} />}
+                    {h.formal && <VerificationBadge small />}
                     {h.launchedByMe && <span className={styles.tag}>yours</span>}
                   </span>
                 </td>
@@ -221,6 +223,7 @@ function LaunchesTab({ launches }: { launches: TokenItem[] }) {
                 <TokenLogo logo={t.logo} symbol={t.symbol} size={18} />
                 <b>${t.symbol}</b>
                 {t.hood && <RigorBadge score={t.rigorScore} />}
+                {t.formal && <VerificationBadge small />}
               </span>
             </td>
             <td>{t.phase === 0 ? `${formatPercent(t.progress)} to graduate` : (PHASE_LABEL[t.phase] ?? '—')}</td>
