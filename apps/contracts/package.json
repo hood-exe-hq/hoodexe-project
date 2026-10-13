@@ -1,0 +1,10 @@
+{
+  "name": "@hood/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "forge install foundry-rs/forge-std@v1.9.4 OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-git",
+    "build": "forge build",
+    "test": "forge test"
+  }
+}
