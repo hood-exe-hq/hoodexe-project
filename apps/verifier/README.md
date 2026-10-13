@@ -71,6 +71,36 @@ pnpm --filter @hood/api verifier
 Run it under systemd or pm2 so it restarts. Submissions stay closed until the API has
 `VERIFICATION_SUBMISSIONS_ENABLED=true` and `VERIFICATION_POOL_ADDRESS` set, and `ADMIN_WALLETS` lists who reviews.
 
+## Running it end to end locally
+
+Submit → check → admin review → payout → registry flag, on a local chain with anvil's test keys. Never use a real
+key here. Needs Docker (Postgres and Redis from `docker compose up -d`, and the verifier image) and Foundry.
+
+```bash
+# 1. A chain with Robinhood's id: the bot signs for chain 4663, so the contract only accepts it there.
+anvil --chain-id 4663
+
+# 2. Deploy (anvil account 0 owns; the bot is set after step 3 prints its address; the operator is any address).
+cd apps/contracts
+OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 VERIFIER_BOT=<any> OPERATOR=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC \
+  forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# 3. An env file for the API and the worker (DATABASE_URL, REDIS_URL, RPC_URL_SERVER=http://127.0.0.1:8545,
+#    VERIFICATION_SUBMISSIONS_ENABLED=true, the three contract addresses from step 2, ADMIN_WALLETS=<account 0>,
+#    VERIFIER_IMAGE, STAND_INS=allow). Start the API and the worker with a throwaway VERIFIER_BOT_PRIVATE_KEY:
+cd apps/api
+npx tsx --env-file=e2e.env src/index.ts
+VERIFIER_BOT_PRIVATE_KEY=0x… npx tsx --env-file=e2e.env src/verifierWorker.ts   # prints "bot 0x…"
+
+# 4. Make that address the pool's bot, and give it gas.
+cast send <pool> "setVerifierBot(address)" <bot> --rpc-url http://127.0.0.1:8545 --private-key <account 0 key>
+cast send <bot> --value 1ether --rpc-url http://127.0.0.1:8545 --private-key <account 0 key>
+
+# 5. Run the flow (a fresh coin and proof each time):
+npx tsx --env-file=e2e.env scripts/verify-e2e.ts
+```
+
 ## Testing it locally
 
 The five cases below are what the image was tested with: a real proof passes, and `sorry`, a custom axiom,
