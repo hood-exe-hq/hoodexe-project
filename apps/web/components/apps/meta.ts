@@ -12,11 +12,12 @@ import {
   RecycleBinIcon,
   SolitaireIcon,
   TheoremIcon,
+  VerificationIcon,
   WarningIcon,
   type IconProps,
 } from '@/components/xp/Icons';
 
-export type AppId = 'welcome' | 'launch' | 'explore' | 'callouts' | 'portfolio' | 'theorem' | 'about' | 'recycle' | 'token' | 'terms' | 'risk' | 'privacy' | 'games' | 'solitaire' | 'minesweeper';
+export type AppId = 'welcome' | 'launch' | 'explore' | 'callouts' | 'portfolio' | 'theorem' | 'about' | 'recycle' | 'token' | 'terms' | 'risk' | 'privacy' | 'games' | 'solitaire' | 'minesweeper' | 'verification' | 'verificationAdmin';
 
 export type AppMeta = {
   id: AppId;
@@ -164,6 +165,24 @@ export const APPS: Record<AppId, AppMeta> = {
     h: 420,
     maximizable: false,
   },
+  verification: {
+    id: 'verification',
+    title: 'Verification Queue.exe',
+    label: 'Verification',
+    description: 'Lean proofs: FORMAL ✓ and rewards',
+    Icon: VerificationIcon,
+    w: 600,
+    h: 480,
+  },
+  verificationAdmin: {
+    id: 'verificationAdmin',
+    title: 'Verification Admin',
+    label: 'Verification Admin',
+    description: 'Review passed proofs (admins)',
+    Icon: VerificationIcon,
+    w: 780,
+    h: 580,
+  },
   recycle: {
     id: 'recycle',
     title: 'Recycle Bin',
@@ -176,12 +195,12 @@ export const APPS: Record<AppId, AppMeta> = {
 };
 
 /** Desktop icon order (docs/BRIEF.md §4.1). */
-export const DESKTOP_APPS: AppId[] = ['welcome', 'launch', 'explore', 'callouts', 'portfolio', 'theorem', 'games', 'about', 'recycle'];
+export const DESKTOP_APPS: AppId[] = ['welcome', 'launch', 'explore', 'callouts', 'portfolio', 'theorem', 'verification', 'games', 'about', 'recycle'];
 
 /** The Games folder and the Start menu's Games submenu (hood-exe-games-brief.md §1.3–1.4). */
 export const GAME_APPS: AppId[] = ['solitaire', 'minesweeper'];
 
 /** Start menu list order. */
-export const START_APPS: AppId[] = ['launch', 'explore', 'callouts', 'portfolio', 'theorem'];
+export const START_APPS: AppId[] = ['launch', 'explore', 'callouts', 'portfolio', 'theorem', 'verification'];
 
 export const isAppId = (v: string | null | undefined): v is AppId => !!v && v in APPS;

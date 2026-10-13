@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { rigorScoreSchema, type RigorScore, type TheoremMetadata } from '@hood/shared';
+import { TIERS, VERIFICATION_STATUSES, rigorScoreSchema, type RigorScore, type TheoremMetadata } from '@hood/shared';
 
 /**
  * Typed client for apps/api (docs/BRIEF.md §9). Cookies ride along for the SIWE session. NEXT_PUBLIC_API_URL
@@ -96,6 +96,8 @@ const tokenItemSchema = z.object({
   statement: z.string().nullable(),
   blurb: z.string().nullable(),
   rigorScore: z.number().nullable(),
+  /** FORMAL ✓: a Lean proof was verified (Σ 100). */
+  formal: z.boolean().default(false),
   phase: z.number(),
   price: z.number().nullable(),
   marketCap: z.number().nullable(),
@@ -137,6 +139,8 @@ const holdingSchema = z.object({
   pair: z.object({ address: z.string(), symbol: z.string(), decimals: z.number() }),
   hood: z.boolean(),
   rigorScore: z.number().nullable(),
+  /** FORMAL ✓: a Lean proof was verified (Σ 100). */
+  formal: z.boolean().default(false),
   phase: z.number(),
   launchedByMe: z.boolean(),
   balance: z.number(),
@@ -316,3 +320,118 @@ export type Leaderboard = z.infer<typeof leaderboardSchema>;
 
 /** GET /leaderboard/:game: today's (UTC) top 20 for a board, and your place when signed in. */
 export const fetchLeaderboard = (game: RankedGame, level: RankedLevel) => request(`/leaderboard/${game}?level=${level}`, { method: 'GET' }, leaderboardSchema);
+
+// ── Formal verification (apps/api/src/routes/verification.ts) ──
+
+const tierSchema = z.enum(TIERS);
+const theoremReportSchema = z.object({ name: z.string(), statement: z.string(), axioms: z.array(z.string()), ok: z.boolean() });
+
+const verificationRowSchema = z.object({
+  id: z.string(),
+  token: z.string(),
+  ticker: z.string().nullable(),
+  name: z.string().nullable(),
+  submitter: z.string(),
+  status: z.enum(VERIFICATION_STATUSES),
+  submittedAt: z.string(),
+  tier: tierSchema.nullable(),
+  rewardWei: z.string().nullable(),
+  verifiedAt: z.string().nullable(),
+  txHashSubmit: z.string().nullable(),
+  txHashResult: z.string().nullable(),
+  ipfsCid: z.string(),
+  errorSummary: z.string().nullable(),
+  /** In the queue: 1 is next; 0 while compiling. */
+  position: z.number().nullable(),
+  estimatedWaitSec: z.number().nullable(),
+});
+export type VerificationRow = z.infer<typeof verificationRowSchema>;
+
+const verificationConfigSchema = z.object({
+  enabled: z.boolean(),
+  poolAddress: z.string().nullable(),
+  submissionFeeWei: z.string(),
+  maxPerWeek: z.number(),
+  maxProofBytes: z.number(),
+  rewardsEth: z.record(tierSchema, z.string()),
+  admin: z.boolean(),
+});
+export type VerificationConfig = z.infer<typeof verificationConfigSchema>;
+export const fetchVerificationConfig = () => request('/verification/config', { method: 'GET' }, verificationConfigSchema);
+
+const preparedSchema = z.object({
+  ipfsCid: z.string(),
+  proofHash: z.string(),
+  submissionFee: z.string(),
+  estimatedTier: tierSchema,
+  txData: z.object({ to: z.string(), data: z.string(), value: z.string() }),
+});
+export type PreparedProof = z.infer<typeof preparedSchema>;
+
+/** POST /verification/prepare: checks and pins the proof, and returns the submit transaction to sign. */
+export function prepareProof(tokenAddress: string, file: File): Promise<PreparedProof> {
+  const form = new FormData();
+  form.append('tokenAddress', tokenAddress);
+  form.append('proof', file, 'proof.lean');
+  return request('/verification/prepare', { method: 'POST', body: form }, preparedSchema, 60_000);
+}
+
+/** POST /verification/confirm: records the submission from its transaction. `pending` while it isn't mined. */
+export const confirmProofSubmission = (txHash: string) =>
+  request('/verification/confirm', json({ txHash }), z.object({ pending: z.boolean(), submissions: z.array(z.object({ id: z.string(), status: z.string() })) }));
+
+export type VerificationTab = 'public' | 'mine' | 'verified';
+export const fetchVerificationQueue = (tab: VerificationTab, page = 0) =>
+  request(`/verification/queue?tab=${tab}&page=${page}`, { method: 'GET' }, z.object({ tab: z.string(), items: z.array(verificationRowSchema), more: z.boolean() }));
+
+const submissionDetailSchema = z.object({
+  submission: verificationRowSchema,
+  theorems: z.array(theoremReportSchema),
+  coinStatement: z.string().nullable(),
+  proof: z.string().nullable(),
+  proofBytes: z.number().nullable(),
+});
+export type SubmissionDetail = z.infer<typeof submissionDetailSchema>;
+export const fetchVerificationSubmission = (id: string) => request(`/verification/submission/${id}`, { method: 'GET' }, submissionDetailSchema);
+
+const tokenProofSchema = z.object({
+  verified: z
+    .object({ id: z.string(), tier: tierSchema.nullable(), rewardWei: z.string().nullable(), verifiedAt: z.string().nullable(), ipfsCid: z.string(), txHashResult: z.string().nullable(), theorems: z.array(theoremReportSchema), proof: z.string().nullable() })
+    .nullable(),
+  pending: z.number(),
+});
+export type TokenProof = z.infer<typeof tokenProofSchema>;
+/** GET /verification/token/:address: the coin's verified proof (its Formal Proof tab), and how many are in the queue. */
+export const fetchTokenProof = (address: string) => request(`/verification/token/${address}`, { method: 'GET' }, tokenProofSchema);
+
+const adminOverviewSchema = z.object({
+  pool: z.object({ address: z.string().nullable(), balanceWei: z.string().nullable(), availableWei: z.string().nullable() }),
+  paused: z.boolean(),
+  enabledByEnv: z.boolean(),
+  counts: z.record(z.string(), z.number()),
+  queueLength: z.number(),
+  oldestQueuedAt: z.string().nullable(),
+  submissionsThisWeek: z.number(),
+  successRate: z.number().nullable(),
+  averageCheckSec: z.number(),
+  paidOutWei: z.string(),
+  review: z.array(
+    z.object({
+      id: z.string(),
+      token: z.string(),
+      ticker: z.string().nullable(),
+      coinStatement: z.string().nullable(),
+      submitter: z.string(),
+      checkedAt: z.string().nullable(),
+      theorems: z.array(theoremReportSchema),
+      suggestedTier: tierSchema.nullable(),
+      suggestion: z.array(z.string()),
+      proof: z.string(),
+    }),
+  ),
+});
+export type VerificationAdmin = z.infer<typeof adminOverviewSchema>;
+export const fetchVerificationAdmin = () => request('/verification/admin/overview', { method: 'GET' }, adminOverviewSchema);
+export const reviewVerification = (body: { id: string; decision: 'approve' | 'reject'; tier?: string; note?: string }) =>
+  request('/verification/admin/review', json(body), z.object({ status: z.string(), tier: z.string().nullable() }));
+export const setVerificationPaused = (paused: boolean) => request('/verification/admin/pause', json({ paused }), z.object({ paused: z.boolean() }));

@@ -496,3 +496,30 @@ export function GamesFolderIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/** Verification Queue.exe: a proof sheet (Lean's turnstile ⊢) with the FORMAL ✓ seal. */
+export function VerificationIcon(props: IconProps) {
+  const id = gid(useId());
+  return (
+    <Svg {...props}>
+      <defs>
+        <linearGradient id={`${id}p`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#dfe6ee" />
+        </linearGradient>
+        <radialGradient id={`${id}g`} cx=".35" cy=".3" r=".8">
+          <stop offset="0" stopColor="#ffe9a3" />
+          <stop offset=".6" stopColor="#f2b41c" />
+          <stop offset="1" stopColor="#b97800" />
+        </radialGradient>
+      </defs>
+      <path d="M4 3 H18 L24 9 V27 H4 Z" fill={`url(#${id}p)`} stroke="#5d6b7a" strokeLinejoin="round" />
+      <path d="M18 3 V9 H24" fill="#c7d2de" stroke="#5d6b7a" strokeLinejoin="round" />
+      <text x="13" y="20" textAnchor="middle" fontFamily="'Cambria Math', 'Segoe UI Symbol', serif" fontWeight="700" fontSize="13" fill="#2b6cb0">
+        ⊢
+      </text>
+      <circle cx="23" cy="23" r="7" fill={`url(#${id}g)`} stroke="#8a5a00" />
+      <path d="M19.6 23.2 L22 25.6 L26.4 20.6" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}

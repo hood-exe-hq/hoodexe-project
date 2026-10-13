@@ -1,0 +1,16 @@
+{
+  "$comment": "Limits for each verification container (brief §4.5). The worker turns these into docker run flags; both the compile and the check step run with them, as separate containers.",
+  "image": "hoodexe/verifier:latest",
+  "timeoutSec": 7200,
+  "checkTimeoutSec": 600,
+  "memoryMb": 8192,
+  "cpus": 4,
+  "pidsLimit": 256,
+  "tmpfsMb": 1024,
+  "outMb": 512,
+  "network": "none",
+  "readOnlyRootfs": true,
+  "user": "10001:10001",
+  "capDropAll": true,
+  "noNewPrivileges": true
+}
