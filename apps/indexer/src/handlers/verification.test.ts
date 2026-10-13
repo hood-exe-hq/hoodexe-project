@@ -2,8 +2,9 @@ import { describe, it } from 'vitest';
 import { createTestIndexer } from 'envio';
 
 const CHAIN = 4663;
-const POOL = '0x00000000000000000000000000000000000000Aa';
-const REGISTRY = '0x00000000000000000000000000000000000000Bb';
+// The deployed addresses (config.yaml): Envio's test indexer only routes events from registered contracts.
+const POOL = '0xA5dba59Cf1470394D899220D6fdbd852ca442Eb6';
+const REGISTRY = '0xeC2ac9552A5657eb8fa5701Fd4703336739c9066';
 const USER = '0x00000000000000000000000000000000000000E1';
 const COIN = '0x00000000000000000000000000000000000000C1';
 const B = 84_000_000;
@@ -22,11 +23,8 @@ const submitted = (n: number) =>
     params: { id: id(n), submitter: USER, token: COIN, proofHash: id(100 + n), ipfsCid: `bafy${n}` },
   }) as const;
 
-// Envio's test indexer only routes events from contracts with an address on the chain, and VerificationPool and
-// RigorRegistry aren't deployed yet (their chain entries in config.yaml are commented out). Un-skip when filling in
-// the deployed addresses (POOL and REGISTRY below must then be those addresses). Wildcard handlers are not an
-// option: anyone could deploy a contract emitting look-alike Verified events and forge FORMAL records.
-describe.skip('formal verification handlers', () => {
+// Not wildcard handlers: anyone could deploy a contract emitting look-alike Verified events and forge FORMAL records.
+describe('formal verification handlers', () => {
   it('records a submission, then its payout, and marks the coin formal', async (t) => {
     const indexer = createTestIndexer();
     await indexer.process({
