@@ -23,6 +23,8 @@ export type SandboxConfig = {
   timeoutSec: number;
   checkTimeoutSec: number;
   memoryMb: number;
+  /** Swap the container may add on top of memoryMb (0: none). Lets a smaller machine check big Mathlib proofs, slowly. */
+  swapMb?: number;
   cpus: number;
   pidsLimit: number;
   tmpfsMb: number;
@@ -46,7 +48,7 @@ export function sandboxArgs(cfg: SandboxConfig, name: string, mounts: string[], 
     '--read-only',
     '--tmpfs', `/tmp:rw,size=${cfg.tmpfsMb}m,mode=1777`,
     '--memory', `${cfg.memoryMb}m`,
-    '--memory-swap', `${cfg.memoryMb}m`,
+    '--memory-swap', `${cfg.memoryMb + (cfg.swapMb ?? 0)}m`,
     '--cpus', String(cfg.cpus),
     '--pids-limit', String(cfg.pidsLimit),
     '--cap-drop', 'ALL',

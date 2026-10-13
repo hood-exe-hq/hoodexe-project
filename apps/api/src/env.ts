@@ -69,6 +69,9 @@ const envSchema = z
     VERIFICATION_POOL_ADDRESS: optional,
     FEE_SPLITTER_ADDRESS: optional,
     RIGOR_REGISTRY_ADDRESS: optional,
+    /** Per-machine sandbox memory, overriding sandbox-config.json: RAM for the checker, and swap it may add. */
+    VERIFICATION_MEMORY_MB: z.coerce.number().int().min(1024).optional(),
+    VERIFICATION_SWAP_MB: z.coerce.number().int().min(0).optional(),
     /** The checker image the worker runs (apps/verifier). */
     VERIFIER_IMAGE: z.string().default('hoodexe/verifier:latest'),
   })

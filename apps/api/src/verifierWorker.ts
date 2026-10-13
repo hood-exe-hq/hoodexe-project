@@ -28,7 +28,13 @@ const redis = env.REDIS_URL ? new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2
 const pubsub = redis ? redisPubSub(redis) : memoryPubSub();
 const pool = rpcPool(env.RPC_URL_SERVER!, env.VERIFICATION_POOL_ADDRESS as `0x${string}`);
 const writer = rpcPoolWriter(env.RPC_URL_SERVER!, pool.address, env.VERIFIER_BOT_PRIVATE_KEY as `0x${string}`);
-const runner = dockerLeanRunner({ ...limits, image: env.VERIFIER_IMAGE, timeoutSec: env.VERIFICATION_TIMEOUT_SEC });
+const runner = dockerLeanRunner({
+  ...limits,
+  image: env.VERIFIER_IMAGE,
+  timeoutSec: env.VERIFICATION_TIMEOUT_SEC,
+  memoryMb: env.VERIFICATION_MEMORY_MB ?? limits.memoryMb,
+  swapMb: env.VERIFICATION_SWAP_MB ?? limits.swapMb ?? 0,
+});
 
 const log = (msg: string) => console.log(`[verifier] ${new Date().toISOString()} ${msg}`);
 const stale = await requeueStale(db);
