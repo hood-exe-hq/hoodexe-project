@@ -152,7 +152,8 @@ export function rpcPoolWriter(rpcUrl: string, address: Address, botKey: Hex): Po
   return {
     bot: account.address,
     async markVerified(id, tier) {
-      const deadline = BigInt(Math.floor(Date.now() / 1000)) + APPROVAL_TTL_S;
+      // From the chain's clock, not this machine's: a drifting server clock can't make approvals expire on arrival.
+      const deadline = (await client.getBlock()).timestamp + APPROVAL_TTL_S;
       const signature = await account.signTypedData({
         domain: { name: 'hood.exe VerificationPool', version: '1', chainId: ROBINHOOD_CHAIN_ID, verifyingContract: address },
         types: { Verify: [{ name: 'id', type: 'bytes32' }, { name: 'tier', type: 'uint8' }, { name: 'deadline', type: 'uint256' }] },
