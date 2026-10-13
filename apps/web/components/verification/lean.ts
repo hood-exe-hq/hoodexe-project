@@ -35,8 +35,10 @@ export function tokenizeLean(src: string): LeanToken[] {
       let depth = 0;
       let j = i;
       while (j < src.length) {
-        if (src.startsWith('/-', j)) (depth++, (j += 2));
-        else if (src.startsWith('-/', j)) {
+        if (src.startsWith('/-', j)) {
+          depth++;
+          j += 2;
+        } else if (src.startsWith('-/', j)) {
           depth--;
           j += 2;
           if (depth === 0) break;

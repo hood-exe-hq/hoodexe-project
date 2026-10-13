@@ -9,6 +9,10 @@ import { Latex } from '@/components/xp/Latex';
 import { RigorBadge } from '@/components/xp/RigorBadge';
 import { ApiError, CHART_INTERVALS, fetchCandles, fetchToken, type ChartInterval, type TokenDetail as Token } from '@/lib/api';
 import { ipfsUrl } from '@/lib/ipfs';
+import { FormalProofTab } from '@/components/verification/FormalProofTab';
+import { VerificationBadge } from '@/components/verification/VerificationBadge';
+import { Button } from '@/components/xp/Button';
+import { openVerification } from '@/lib/openApp';
 import { useWindows, type WindowState } from '@/store/windows';
 import { PHASE_LABEL, formatPercent, formatQuote, timeAgo } from '../explore/format';
 import { TokenLogo } from '../explore/TokenLogo';
@@ -53,6 +57,7 @@ export function TokenDetail({ win }: { win: WindowState }) {
               { id: 'trades', label: 'Trades', content: <TradesTab address={t.token} symbol={t.symbol} pairSymbol={t.pair.symbol} paused={paused} /> },
               { id: 'callouts', label: 'Callouts', content: <CalloutFeed token={t.token} ticker={t.symbol} /> },
               { id: 'theorem', label: 'Theorem', content: <TheoremTab token={t} /> },
+              ...(t.formal ? [{ id: 'formal', label: 'Formal ✓', content: <FormalProofTab address={t.token} /> }] : []),
             ]}
           />
         </div>
@@ -75,6 +80,7 @@ function Header({ token: t }: { token: Token }) {
         <div className={styles.snippet}>{t.hood && t.statement ? <Latex source={t.statement} /> : <span className={styles.plain}>{t.blurb}</span>}</div>
       </div>
       {t.hood && <RigorBadge score={t.rigorScore} />}
+      {t.formal && <VerificationBadge />}
       <dl className={styles.stats}>
         <div>
           <dt>Price</dt>
@@ -177,9 +183,22 @@ function TheoremTab({ token: t }: { token: Token }) {
       <div className={styles.theorem}>
         <Latex source={t.statement} />
       </div>
-      <p className={styles.muted}>
-        Rigor <RigorBadge score={t.rigorScore} /> — {RIGOR_DISCLAIMER}.
-      </p>
+      {t.formal ? (
+        <p className={styles.muted}>
+          Rigor <RigorBadge score={t.rigorScore} /> <VerificationBadge small /> — formally verified: a Lean 4 proof was checked by the kernel and reviewed (see the Formal ✓
+          tab).
+        </p>
+      ) : (
+        <>
+          <p className={styles.muted}>
+            Rigor <RigorBadge score={t.rigorScore} /> — {RIGOR_DISCLAIMER}.
+          </p>
+          <p>
+            <Button onClick={() => openVerification(t.token)}>⚡ Submit for Formal Verification</Button>{' '}
+            <span className={styles.muted}>A Lean proof that passes earns Σ 100, FORMAL ✓ and a reward.</span>
+          </p>
+        </>
+      )}
       <p>
         <a href={addressUrl(t.token)} target="_blank" rel="noopener noreferrer">
           Token on Blockscout

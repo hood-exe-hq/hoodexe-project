@@ -39,7 +39,8 @@ export function Desktop() {
     const params = new URLSearchParams(window.location.search);
     const shared = /^\/t\/(0x[0-9a-fA-F]{40})\/?$/.exec(window.location.pathname)?.[1];
     const game = /^\/games\/(solitaire|minesweeper)\/?$/.exec(window.location.pathname)?.[1];
-    const requested = shared ? 'token' : (game ?? params.get('app'));
+    const verification = /^\/verification\/?$/.test(window.location.pathname) ? 'verification' : /^\/admin\/verification\/?$/.test(window.location.pathname) ? 'verificationAdmin' : null;
+    const requested = shared ? 'token' : (game ?? verification ?? params.get('app'));
     const token = shared ?? params.get('t');
     if (useWindows.getState().windows.length > 0) return;
     if (requested === 'token' && token && isAddress(token, { strict: false })) openToken(token);
@@ -56,6 +57,10 @@ export function Desktop() {
           ? `/t/${active.props.address}`
           : active.appId === 'solitaire' || active.appId === 'minesweeper'
             ? `/games/${active.appId}`
+          : active.appId === 'verification'
+            ? '/verification'
+          : active.appId === 'verificationAdmin'
+            ? '/admin/verification'
           : `/?app=${active.appId}`;
     if (window.location.pathname + window.location.search !== next) window.history.replaceState(null, '', next);
   }, [windows, activeId]);

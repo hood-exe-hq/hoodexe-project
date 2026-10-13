@@ -29,7 +29,12 @@ export type AnalyticsEvent =
   | 'minesweeper_started'
   | 'minesweeper_won'
   | 'minesweeper_lost'
-  | 'minesweeper_difficulty_changed';
+  | 'minesweeper_difficulty_changed'
+  // Formal verification (hood-exe-formal-verification-brief.md §11)
+  | 'verification_submitted'
+  | 'verification_passed'
+  | 'verification_failed'
+  | 'verification_shared';
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 

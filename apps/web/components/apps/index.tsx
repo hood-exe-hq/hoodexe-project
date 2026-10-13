@@ -18,6 +18,9 @@ type AppComponent = ComponentType<{ win: WindowState }>;
 // The games are code-split: their code loads the first time someone opens them (hood-exe-games-brief.md §9).
 const SolitaireWindow = lazy(() => import('@/components/games/Solitaire/SolitaireWindow'));
 const MinesweeperWindow = lazy(() => import('@/components/games/Minesweeper/MinesweeperWindow'));
+// Formal verification (hood-exe-formal-verification-brief.md §7), also loaded on first open.
+const VerificationWindow = lazy(() => import('@/components/verification/VerificationWindow').then((m) => ({ default: m.VerificationWindow })));
+const VerificationAdmin = lazy(() => import('@/components/verification/VerificationAdmin').then((m) => ({ default: m.VerificationAdmin })));
 
 export const APP_COMPONENTS: Record<AppId, AppComponent | LazyExoticComponent<AppComponent>> = {
   welcome: Welcome,
@@ -35,4 +38,6 @@ export const APP_COMPONENTS: Record<AppId, AppComponent | LazyExoticComponent<Ap
   games: GamesFolder,
   solitaire: SolitaireWindow,
   minesweeper: MinesweeperWindow,
+  verification: VerificationWindow,
+  verificationAdmin: VerificationAdmin,
 };

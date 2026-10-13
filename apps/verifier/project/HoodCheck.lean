@@ -47,7 +47,7 @@ def statementOf (env : Environment) (ci : ConstantInfo) : IO String := do
 
 /-- `file` is read by its path, never found through the search path: the search path holds only the image's own Lean
 and Mathlib, so whatever imports a (possibly forged) compiled proof lists can only resolve to those. -/
-def check (file : System.FilePath) : IO UInt32 := do
+unsafe def check (file : System.FilePath) : IO UInt32 := do
   unless ← file.pathExists do
     return ← emit { ok := false, theorems := #[], error := some "the proof did not compile to a module" }
   let (data, _) ← readModuleData file
@@ -80,7 +80,9 @@ def check (file : System.FilePath) : IO UInt32 := do
     return ← emit { ok := false, theorems := #[], error := some "the file proves no theorem" }
   emit { ok := reports.all (·.ok), theorems := reports }
 
-def main (args : List String) : IO UInt32 := do
+-- `unsafe`: enabling initializers (for the imports' extensions) is outside the kernel's world. This program checks
+-- nothing by itself; the kernel replay and the axiom walk do.
+unsafe def main (args : List String) : IO UInt32 := do
   let [file] := args | do IO.eprintln "usage: hoodcheck <path to .olean>"; return 2
   initSearchPath (← findSysroot)
   try check file catch e => do

@@ -6,6 +6,7 @@ import { RIGOR_DISCLAIMER } from '@hood/shared';
 import { Button } from '@/components/xp/Button';
 import { ProgressBar, StatusBar } from '@/components/xp/Controls';
 import { Latex } from '@/components/xp/Latex';
+import { VerificationBadge } from '@/components/verification/VerificationBadge';
 import { RigorBadge } from '@/components/xp/RigorBadge';
 import { ApiError, fetchTokens, type TokenItem, type TokenQuery } from '@/lib/api';
 import { openApp, openToken } from '@/lib/openApp';
@@ -157,6 +158,7 @@ function TokenCard({ token: t, showVolume }: { token: TokenItem; showVolume: boo
             <span>{t.name}</span>
           </div>
           {t.hood && <RigorBadge score={t.rigorScore} />}
+          {t.formal && <VerificationBadge small />}
         </div>
         <div className={styles.snippet}>{t.hood && t.statement ? <Latex source={t.statement} /> : <span className={styles.plain}>{t.blurb}</span>}</div>
         <div className={styles.stats}>
