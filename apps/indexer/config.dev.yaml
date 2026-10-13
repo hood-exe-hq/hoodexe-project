@@ -19,6 +19,24 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # Formal verification (hood-exe-formal-verification-brief.md §6). Not deployed yet: their chain entries below are
+  # commented out until the contracts are reviewed and deployed.
+  - name: VerificationPool
+    events:
+      - event: Submitted(bytes32 indexed id, address indexed submitter, address indexed token, bytes32 proofHash, string ipfsCid)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Verified(bytes32 indexed id, uint8 tier, uint256 reward)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Failed(bytes32 indexed id, string reason)
+      - event: Refunded(bytes32 indexed id, uint256 amount)
+  - name: RigorRegistry
+    events:
+      - event: FormalVerificationUpgrade(address indexed token)
+      - event: FormalVerificationRevoked(address indexed token, string reason)
 chains:
   - id: 4663
     # About an hour before this file was written; raise it, or use "latest", to start fresher.
@@ -27,3 +45,8 @@ chains:
       - name: PonsV2Factory
         address: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e"
       - name: PonsV2Curve
+      # Formal verification: uncomment with the addresses from apps/contracts/script/Deploy.s.sol.
+      # - name: VerificationPool
+      #   address: "0x…"
+      # - name: RigorRegistry
+      #   address: "0x…"
