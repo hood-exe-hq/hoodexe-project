@@ -64,7 +64,8 @@ unsafe def check (file : System.FilePath) : IO UInt32 := do
     return ← emit { ok := false, theorems := #[], error := some s!"kernel rejected the compiled proof: {e}" }
   let mut reports : Array TheoremReport := #[]
   for name in data.constNames do
-    let some ci := env.find? name | continue
+    -- Replayed declarations live in the kernel's environment (what the kernel checked), not the elaborator's view.
+    let some ci := env.checked.get.find? name | continue
     unless ci matches .thmInfo _ do continue
     if name.isInternal then continue
     -- The proof's own theorems are local to `env` (replayed, not imported), so their proof terms are walked rather
