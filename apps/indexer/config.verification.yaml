@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Formal verification indexer (hood-exe-formal-verification-brief.md §6): the VerificationPool's submissions and the
+# RigorRegistry's FORMAL ✓ coins. A second Railway service next to the main indexer (docs/DEPLOY.md), in its own
+# Postgres schema, because envio won't resume an index whose contract list changed. Run it with ENVIO_HASURA=false:
+# envio clears Hasura's metadata on start, which would drop the main indexer's GraphQL API.
+name: hood-exe-verification
+schema: ./schema.verification.graphql
+handlers: ./src/verification
+rollback_on_reorg: false
+contracts:
+  - name: VerificationPool
+    events:
+      - event: Submitted(bytes32 indexed id, address indexed submitter, address indexed token, bytes32 proofHash, string ipfsCid)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Verified(bytes32 indexed id, uint8 tier, uint256 reward)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Failed(bytes32 indexed id, string reason)
+      - event: Refunded(bytes32 indexed id, uint256 amount)
+  - name: RigorRegistry
+    events:
+      - event: FormalVerificationUpgrade(address indexed token)
+      - event: FormalVerificationRevoked(address indexed token, string reason)
+chains:
+  - id: 4663
+    # The contracts' deployment, 13 Oct 2026.
+    start_block: 87509911
+    contracts:
+      - name: VerificationPool
+        address: "0xA5dba59Cf1470394D899220D6fdbd852ca442Eb6"
+      - name: RigorRegistry
+        address: "0xeC2ac9552A5657eb8fa5701Fd4703336739c9066"

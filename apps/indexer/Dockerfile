@@ -4,9 +4,11 @@
 FROM node:22-bookworm-slim
 WORKDIR /app
 COPY apps/indexer/package.json ./
-RUN npm install --no-package-lock --no-audit --no-fund
+# npm 10 (bundled with node 22) fails on envio's dependency tree ("reading 'edgesOut'"); npm 11 installs it. Run it
+# once via npx rather than `npm install -g npm`, which breaks the image's own npm.
+RUN npx -y npm@11.21.0 install --no-package-lock --no-audit --no-fund
 COPY apps/indexer/ ./
 
 ENV ENVIO_CONFIG=config.selfhost.yaml ENVIO_TUI=false
 # `envio start` runs codegen, then resumes from the database (never `--restart` here: it wipes the index).
-CMD ["npx", "envio", "start"]
+CMD ["node_modules/.bin/envio", "start"]

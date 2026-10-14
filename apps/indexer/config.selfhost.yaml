@@ -24,23 +24,6 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # Formal verification (hood-exe-formal-verification-brief.md §6).
-  - name: VerificationPool
-    events:
-      - event: Submitted(bytes32 indexed id, address indexed submitter, address indexed token, bytes32 proofHash, string ipfsCid)
-        field_selection:
-          transaction_fields:
-            - hash
-      - event: Verified(bytes32 indexed id, uint8 tier, uint256 reward)
-        field_selection:
-          transaction_fields:
-            - hash
-      - event: Failed(bytes32 indexed id, string reason)
-      - event: Refunded(bytes32 indexed id, uint256 amount)
-  - name: RigorRegistry
-    events:
-      - event: FormalVerificationUpgrade(address indexed token)
-      - event: FormalVerificationRevoked(address indexed token, string reason)
 chains:
   - id: 4663
     # About 3 Oct 2026, 11:00 UTC (the chain makes ~843k blocks a day).
@@ -49,8 +32,3 @@ chains:
       - name: PonsV2Factory
         address: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e"
       - name: PonsV2Curve
-      # Formal verification, deployed 13 Oct 2026 at block 87509911.
-      - name: VerificationPool
-        address: "0xA5dba59Cf1470394D899220D6fdbd852ca442Eb6"
-      - name: RigorRegistry
-        address: "0xeC2ac9552A5657eb8fa5701Fd4703336739c9066"

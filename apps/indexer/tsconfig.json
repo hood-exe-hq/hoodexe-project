@@ -10,5 +10,8 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src", "envio-env.d.ts"]
+  "include": ["src", "envio-env.d.ts"],
+  // Typed by codegen for config.verification.yaml, not config.yaml (envio generates one config's types at a time);
+  // its tests run against that config (scripts/envio.mjs test).
+  "exclude": ["src/verification"]
 }
