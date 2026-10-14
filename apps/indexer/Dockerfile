@@ -4,7 +4,8 @@
 FROM node:22-bookworm-slim
 WORKDIR /app
 COPY apps/indexer/package.json ./
-RUN npm install --no-package-lock --no-audit --no-fund
+# npm 10 (bundled with node 22) fails on envio's dependency tree ("reading 'edgesOut'"); npm 11 installs it.
+RUN npm install -g npm@11.21.0 && npm install --no-package-lock --no-audit --no-fund
 COPY apps/indexer/ ./
 
 ENV ENVIO_CONFIG=config.selfhost.yaml ENVIO_TUI=false
