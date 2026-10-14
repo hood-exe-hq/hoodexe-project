@@ -66,6 +66,22 @@ down past 100k events), so the indexer runs on Railway as three services in the 
   `config.yaml` (from the factory's deployment) would take most of a day on the free token.
 - Deploy with `npx @railway/cli up --service indexer`. It resumes from the database; never run `envio start --restart`
   there, which wipes the index.
+- **Never add or remove contracts in `config.selfhost.yaml`:** envio refuses to resume an index whose contract list
+  changed (the only ways out are reverting or wiping). New contracts go in a separate indexer, like the one below.
+
+### Formal verification indexer
+
+A fourth service, `indexer-verification`, indexes the VerificationPool and RigorRegistry
+(`config.verification.yaml`, its own `schema.verification.graphql` and `src/verification` handlers) into its own
+schema of the same Postgres:
+
+- Same image (`apps/indexer/Dockerfile`, config file path `apps/indexer/railway.json`) and the same `ENVIO_API_TOKEN`
+  and `ENVIO_PG_*` as `indexer` (reference them: `${{indexer.ENVIO_PG_HOST}}` and so on), plus
+  `ENVIO_CONFIG=config.verification.yaml`, `ENVIO_PG_SCHEMA=verification` and **`ENVIO_HASURA=false`**: envio clears
+  Hasura's metadata on start, which would take down the main indexer's GraphQL API. No Hasura variables, no domain.
+- Nothing reads it yet; the API keeps its own queue. Its tables (`verification."VerificationSubmission"`,
+  `verification."FormalToken"`) are the on-chain record to check that queue against.
+- Deploy with `npx @railway/cli up --service indexer-verification`.
 
 ## 2. API and worker: Railway
 

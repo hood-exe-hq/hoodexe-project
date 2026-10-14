@@ -7,7 +7,7 @@ const POOL = '0xA5dba59Cf1470394D899220D6fdbd852ca442Eb6';
 const REGISTRY = '0xeC2ac9552A5657eb8fa5701Fd4703336739c9066';
 const USER = '0x00000000000000000000000000000000000000E1';
 const COIN = '0x00000000000000000000000000000000000000C1';
-const B = 84_000_000;
+const B = 87_600_000; // after the start block in config.verification.yaml
 const T0 = 1_791_500_000;
 const id = (n: number) => `0x${n.toString(16).padStart(64, '0')}` as `0x${string}`;
 const tx = (n: number) => ({ hash: `0x${(n + 500).toString(16).padStart(64, '0')}` as `0x${string}` });
