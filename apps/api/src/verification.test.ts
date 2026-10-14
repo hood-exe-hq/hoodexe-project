@@ -220,6 +220,19 @@ describe('formal verification: the worker and the review', () => {
     expect((await prepare(a, `${PROOF}-- again\n`)).statusCode).toBe(409);
   });
 
+  it('approves one proof per coin: a copy with a comment changed is not paid again', async () => {
+    const a = await signIn(ctx, alice);
+    const b = await signIn(ctx, bob);
+    const first = await submitProof(a, alice.address, 1);
+    const copy = await submitProof(b, bob.address, 2, `${PROOF}-- mine now\n`);
+    expect(await processQueue(worker())).toBe(2);
+    const review = (id: string) => ctx.app.inject({ method: 'POST', url: '/verification/admin/review', headers: { cookie: b }, payload: { id, decision: 'approve', tier: 'SIMPLE' } });
+    expect((await review(first)).statusCode).toBe(200);
+    expect((await review(copy)).statusCode).toBe(409);
+    const reject = await ctx.app.inject({ method: 'POST', url: '/verification/admin/review', headers: { cookie: b }, payload: { id: copy, decision: 'reject', note: 'copy' } });
+    expect(reject.json()).toMatchObject({ status: 'rejected' });
+  });
+
   it('records a failed proof on-chain with its reason, and shows it to the submitter only', async () => {
     const a = await signIn(ctx, alice);
     const id = await submitProof(a, alice.address, 1);

@@ -324,6 +324,14 @@ export async function verificationRoutes(app: FastifyInstance) {
     const [row] = await db.select().from(subs).where(eq(subs.id, body.id)).limit(1);
     if (!row) throw new HttpError(404, 'No such submission.');
     if (row.status !== 'passed') throw new HttpError(409, `Only proofs that passed the checker can be reviewed (this one is ${row.status}).`);
+    if (body.decision === 'approve') {
+      // One reward per coin: the contract pays whatever the bot signs, so a copied proof (one comment changed, a new
+      // hash) would otherwise be paid a second time.
+      const sameCoin = sql`lower(${subs.tokenAddress}) = ${row.tokenAddress.toLowerCase()}`;
+      const [first] = await db.select({ id: subs.id }).from(subs).where(and(sameCoin, inArray(subs.status, ['approved', 'verified']))).limit(1);
+      const [coin] = await db.select({ formal: schema.tokens.formal }).from(schema.tokens).where(sql`lower(${schema.tokens.tokenAddress}) = ${row.tokenAddress.toLowerCase()}`).limit(1);
+      if (first || coin?.formal) throw new HttpError(409, 'This coin already has an approved proof. Reject this one.');
+    }
     const reviewed = { reviewedBy: req.wallet, reviewedAt: now(), reviewNote: body.note ?? null };
     const [updated] = await db
       .update(subs)
